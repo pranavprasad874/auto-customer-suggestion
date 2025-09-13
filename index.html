@@ -846,6 +846,7 @@
                 });
                 await worker.setParameters({
                     tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE, // Treat image as a single line
                 });
                 const { data: { text } } = await worker.recognize(processedCanvas); // Use processed canvas
                 await worker.terminate();
@@ -2139,5 +2140,6 @@ function deleteSuggestion(index) {
     </script>
 </body>
 </html>
+
 
 
