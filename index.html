@@ -96,6 +96,18 @@
                 width: 100%;
             }
         }
+        /* Scanner guide box style */
+        .scanner-guide-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 25%;
+            border: 3px solid white;
+            border-radius: 12px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -488,7 +500,7 @@
       </div>
     </div>
     
-    <!-- ADDED: Scanner Modal -->
+    <!-- Scanner Modal -->
     <div id="scanner-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-hidden">
         <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" onclick="closeScannerModal()"></div>
         <div class="relative bg-white rounded-lg p-4 w-full max-w-lg m-4 space-y-4">
@@ -498,8 +510,9 @@
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-            <div class="bg-black rounded-lg overflow-hidden aspect-video">
+            <div class="bg-black rounded-lg overflow-hidden aspect-video relative">
                  <video id="scanner-video" class="w-full h-full object-cover" playsinline></video>
+                 <div id="scanner-guide-box" class="scanner-guide-box"></div>
             </div>
             <p id="scanner-status" class="text-center text-gray-600 min-h-[1.5rem]"></p>
             <button id="capture-btn" onclick="captureAndRecognize()" class="btn-primary">
@@ -742,7 +755,6 @@
             const cleanedText = text.replace(/[\s\n\r\t.,!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '').toUpperCase();
             
             // Regex patterns for common Indian number plates. Ordered from most to least specific.
-            // ADDED: BH series plate format as the first pattern for highest priority.
             const patterns = [
                 /\d{2}BH\d{4}[A-Z]{2}/,      // BH Series: 21BH2345AA
                 /[A-Z]{2}\d{2}[A-Z]{2}\d{4}/, // e.g., KL07AB1234
@@ -786,7 +798,7 @@
                 video.srcObject = videoStream;
                 video.onloadedmetadata = () => {
                     video.play();
-                    statusEl.textContent = 'Position the number plate in the frame.';
+                    statusEl.textContent = 'Align the number plate inside the box.';
                     captureBtn.disabled = false;
                 };
             } catch (err) {
@@ -810,6 +822,7 @@
             const video = document.getElementById('scanner-video');
             const statusEl = document.getElementById('scanner-status');
             const captureBtn = document.getElementById('capture-btn');
+            const guideBox = document.getElementById('scanner-guide-box');
 
             if (!video.srcObject) {
                 showError("Camera stream not available.");
@@ -823,13 +836,25 @@
                     <span>Processing image...</span>
                 </div>`;
 
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            // --- Cropping Logic ---
+            const videoRect = video.getBoundingClientRect();
+            const boxRect = guideBox.getBoundingClientRect();
+
+            const scaleX = video.videoWidth / videoRect.width;
+            const scaleY = video.videoHeight / videoRect.height;
             
-            // Pre-process the image for better results
+            const cropX = (boxRect.left - videoRect.left) * scaleX;
+            const cropY = (boxRect.top - videoRect.top) * scaleY;
+            const cropWidth = boxRect.width * scaleX;
+            const cropHeight = boxRect.height * scaleY;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = cropWidth;
+            canvas.height = cropHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+            
+            // Pre-process the CROPPED image for better results
             const processedCanvas = preprocessImage(canvas);
 
             try {
@@ -2073,7 +2098,7 @@ function deleteSuggestion(index) {
             if (printImage.complete) {
                 drawMarksAndPrint();
             } else {
-                printImage.onload = drawMarksAndPrint;
+                printImage.onload = drawMarksAnd-print;
             }
         }
 
@@ -2140,6 +2165,4 @@ function deleteSuggestion(index) {
     </script>
 </body>
 </html>
-
-
 
