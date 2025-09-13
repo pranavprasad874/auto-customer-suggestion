@@ -696,6 +696,69 @@
         let carImage, damageCanvas, checkCanvas, damageCtx, checkCtx;
 
         // --- OCR SCANNER FUNCTIONS ---
+        
+        /**
+         * Pre-processes the captured image to improve OCR accuracy.
+         * Converts the image to grayscale and increases contrast.
+         * @param {HTMLCanvasElement} canvas The canvas with the captured image.
+         * @returns {HTMLCanvasElement} A new canvas with the processed image.
+         */
+        function preprocessImage(canvas) {
+            const processedCanvas = document.createElement('canvas');
+            processedCanvas.width = canvas.width;
+            processedCanvas.height = canvas.height;
+            const ctx = processedCanvas.getContext('2d');
+
+            ctx.drawImage(canvas, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const contrast = 128; // Contrast level (0 to 128)
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+            for (let i = 0; i < data.length; i += 4) {
+                // Grayscale
+                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                
+                // Contrast
+                const r = factor * (avg - 128) + 128;
+                const g = factor * (avg - 128) + 128;
+                const b = factor * (avg - 128) + 128;
+
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+            }
+            ctx.putImageData(imageData, 0, 0);
+            return processedCanvas;
+        }
+
+        /**
+         * Finds the most likely Indian vehicle number plate from raw OCR text.
+         * @param {string} text Raw text from Tesseract.
+         * @returns {string|null} The best matching number plate or null.
+         */
+        function findBestMatchForPlate(text) {
+            // Clean the text by removing spaces, newlines, and common misread characters.
+            const cleanedText = text.replace(/[\s\n\r\t.,!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '').toUpperCase();
+            
+            // Regex patterns for common Indian number plates. Ordered from most to least specific.
+            const patterns = [
+                /[A-Z]{2}\d{2}[A-Z]{2}\d{4}/, // e.g., KL07AB1234
+                /[A-Z]{2}\d{2}[A-Z]{1}\d{4}/,  // e.g., MH12J1234
+                /[A-Z]{2}\d{2}[A-Z]{1,2}\d{3}/, // e.g., TN37C987
+                /[A-Z]{2}\d{2}[A-Z]{1,2}\d{1,4}/, // Generic catch-all
+                /[A-Z]{2}\d{1,2}[A-Z]{1,2}\d{1,4}/ // Most generic
+            ];
+
+            for (const pattern of patterns) {
+                const match = cleanedText.match(pattern);
+                if (match) {
+                    return match[0]; // Return the first valid format found
+                }
+            }
+            return null; // No valid format found
+        }
+
         async function openScannerModal() {
             const video = document.getElementById('scanner-video');
             const statusEl = document.getElementById('scanner-status');
@@ -763,6 +826,9 @@
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Pre-process the image for better results
+            const processedCanvas = preprocessImage(canvas);
 
             try {
                 const worker = await Tesseract.createWorker('eng', 1, {
@@ -779,14 +845,15 @@
                 await worker.setParameters({
                     tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
                 });
-                const { data: { text } } = await worker.recognize(canvas);
+                const { data: { text } } = await worker.recognize(processedCanvas); // Use processed canvas
                 await worker.terminate();
                 
-                const cleanedText = normalizeVehicleNumber(text);
+                const bestMatch = findBestMatchForPlate(text);
                 
-                if (cleanedText) {
-                    document.getElementById('search-vehicle-number').value = cleanedText;
-                    showSuccessMessage(`Detected: ${cleanedText}`);
+                if (bestMatch) {
+                    const finalNumber = normalizeVehicleNumber(bestMatch);
+                    document.getElementById('search-vehicle-number').value = finalNumber;
+                    showSuccessMessage(`Detected: ${finalNumber}`);
                     closeScannerModal();
                     searchVehicle(); // Automatically search
                 } else {
@@ -2070,5 +2137,4 @@ function deleteSuggestion(index) {
     </script>
 </body>
 </html>
-
 
