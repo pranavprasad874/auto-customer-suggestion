@@ -102,11 +102,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 80%;
-            height: 25%;
+            width: 90%;
+            height: 35%;
             border: 3px solid white;
             border-radius: 12px;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
         }
     </style>
 </head>
@@ -254,9 +254,10 @@
              <main class="app-main">
                 <div class="card">
                     <h2 class="text-xl font-bold mb-4">Vehicle No:</h2>
+                    <input type="file" id="image-upload-input" class="hidden" accept="image/*" onchange="handleImageUpload(event)">
                     <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
                         <input id="search-vehicle-number" type="text" placeholder="Enter Vehicle Number (e.g., KL07AB1234)" class="form-input flex-grow min-w-0" onkeyup="this.value = this.value.toUpperCase()">
-                        <button onclick="openScannerModal()" class="btn-secondary !w-auto flex-shrink-0 !py-2 !px-3">
+                        <button onclick="document.getElementById('image-upload-input').click()" class="btn-secondary !w-auto flex-shrink-0 !py-2 !px-3">
                             <span class="material-symbols-outlined text-base sm:text-lg">photo_camera</span>
                             <span class="hidden sm:inline text-sm ml-1">Scan</span>
                         </button>
@@ -510,13 +511,13 @@
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-            <div class="bg-black rounded-lg overflow-hidden aspect-video relative">
-                 <video id="scanner-video" class="w-full h-full object-cover" playsinline></video>
+            <div class="bg-black rounded-lg overflow-hidden aspect-video relative flex items-center justify-center">
+                 <img id="scanner-image-preview" class="max-w-full max-h-full object-contain">
                  <div id="scanner-guide-box" class="scanner-guide-box"></div>
             </div>
             <p id="scanner-status" class="text-center text-gray-600 min-h-[1.5rem]"></p>
-            <button id="capture-btn" onclick="captureAndRecognize()" class="btn-primary">
-                <span class="material-symbols-outlined">camera</span>Capture & Read
+            <button id="capture-btn" onclick="processUploadedImage()" class="btn-primary">
+                <span class="material-symbols-outlined">badge</span>Recognize Plate
             </button>
         </div>
     </div>
@@ -699,7 +700,6 @@
         let originalClientName = '';
         let originalClientPhone = '';
         let damageMarks = []; 
-        let videoStream = null; // For camera stream
         
         // --- UI Element References ---
         const vehicleDetailsSection = document.getElementById('vehicle-details-section'), createVehicleSection = document.getElementById('create-vehicle-section'), newComplaintSection = document.getElementById('new-complaint-section'), searchError = document.getElementById('search-error');
@@ -767,6 +767,7 @@
             return corrected.join('');
         }
 
+
         /**
          * Finds the most likely Indian vehicle number plate from raw OCR text.
          * @param {string} text Raw text from Tesseract.
@@ -795,59 +796,37 @@
             return null; // No valid format found
         }
 
-        async function openScannerModal() {
-            const video = document.getElementById('scanner-video');
-            const statusEl = document.getElementById('scanner-status');
-            const captureBtn = document.getElementById('capture-btn');
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            if (!('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices)) {
-                showError('Camera access is not available on this browser.');
-                return;
-            }
-
-            showModal('scanner-modal');
-            statusEl.textContent = 'Starting camera...';
-            captureBtn.disabled = true;
-
-            try {
-                videoStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    } 
-                });
-                video.srcObject = videoStream;
-                video.onloadedmetadata = () => {
-                    video.play();
-                    statusEl.textContent = 'Align the number plate inside the box.';
-                    captureBtn.disabled = false;
-                };
-            } catch (err) {
-                console.error("Camera Error:", err);
-                statusEl.textContent = 'Could not access camera. Check permissions.';
-                showError('Could not access camera. Please allow camera permissions and try again.');
-            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imagePreview = document.getElementById('scanner-image-preview');
+                imagePreview.src = e.target.result;
+                showModal('scanner-modal');
+                document.getElementById('scanner-status').textContent = 'Image loaded. Click below to recognize.';
+                 document.getElementById('capture-btn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+             // Reset file input to allow uploading the same file again
+            event.target.value = '';
         }
 
         function closeScannerModal() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-            const video = document.getElementById('scanner-video');
-            video.srcObject = null;
+            const imagePreview = document.getElementById('scanner-image-preview');
+            imagePreview.src = ''; // Clear image
             hideModal('scanner-modal');
         }
 
-        async function captureAndRecognize() {
-            const video = document.getElementById('scanner-video');
+        async function processUploadedImage() {
+            const imagePreview = document.getElementById('scanner-image-preview');
             const statusEl = document.getElementById('scanner-status');
             const captureBtn = document.getElementById('capture-btn');
             const guideBox = document.getElementById('scanner-guide-box');
 
-            if (!video.srcObject) {
-                showError("Camera stream not available.");
+            if (!imagePreview.src) {
+                showError("No image selected to process.");
                 return;
             }
 
@@ -859,14 +838,14 @@
                 </div>`;
 
             // --- Cropping Logic ---
-            const videoRect = video.getBoundingClientRect();
+            const imgRect = imagePreview.getBoundingClientRect();
             const boxRect = guideBox.getBoundingClientRect();
 
-            const scaleX = video.videoWidth / videoRect.width;
-            const scaleY = video.videoHeight / videoRect.height;
+            const scaleX = imagePreview.naturalWidth / imgRect.width;
+            const scaleY = imagePreview.naturalHeight / imgRect.height;
             
-            const cropX = (boxRect.left - videoRect.left) * scaleX;
-            const cropY = (boxRect.top - videoRect.top) * scaleY;
+            const cropX = (boxRect.left - imgRect.left) * scaleX;
+            const cropY = (boxRect.top - imgRect.top) * scaleY;
             const cropWidth = boxRect.width * scaleX;
             const cropHeight = boxRect.height * scaleY;
 
@@ -874,7 +853,7 @@
             canvas.width = cropWidth;
             canvas.height = cropHeight;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+            ctx.drawImage(imagePreview, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             
             // Pre-process the CROPPED image for better results
             const processedCanvas = preprocessImage(canvas);
@@ -2188,5 +2167,4 @@ function deleteSuggestion(index) {
     </script>
 </body>
 </html>
-
 
