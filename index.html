@@ -742,7 +742,9 @@
             const cleanedText = text.replace(/[\s\n\r\t.,!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '').toUpperCase();
             
             // Regex patterns for common Indian number plates. Ordered from most to least specific.
+            // ADDED: BH series plate format as the first pattern for highest priority.
             const patterns = [
+                /\d{2}BH\d{4}[A-Z]{2}/,      // BH Series: 21BH2345AA
                 /[A-Z]{2}\d{2}[A-Z]{2}\d{4}/, // e.g., KL07AB1234
                 /[A-Z]{2}\d{2}[A-Z]{1}\d{4}/,  // e.g., MH12J1234
                 /[A-Z]{2}\d{2}[A-Z]{1,2}\d{3}/, // e.g., TN37C987
@@ -2137,4 +2139,5 @@ function deleteSuggestion(index) {
     </script>
 </body>
 </html>
+
 
