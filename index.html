@@ -240,18 +240,17 @@
 
         <div id="job-card-screen" class="executive-screen active-executive-screen">
              <main class="app-main">
-                <!-- MODIFIED: Added scan button and updated layout -->
                 <div class="card">
                     <h2 class="text-xl font-bold mb-4">Vehicle No:</h2>
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <input id="search-vehicle-number" type="text" placeholder="Enter Vehicle Number (e.g., KL07AB1234)" class="form-input flex-grow" onkeyup="this.value = this.value.toUpperCase()">
-                        <button onclick="openScannerModal()" class="btn-secondary flex-shrink-0 !py-3 !px-4">
-                            <span class="material-symbols-outlined">photo_camera</span>
-                            <span class="hidden sm:inline ml-1">Scan</span>
+                    <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <input id="search-vehicle-number" type="text" placeholder="Enter Vehicle Number (e.g., KL07AB1234)" class="form-input flex-grow min-w-0" onkeyup="this.value = this.value.toUpperCase()">
+                        <button onclick="openScannerModal()" class="btn-secondary !w-auto flex-shrink-0 !py-2 !px-3">
+                            <span class="material-symbols-outlined text-base sm:text-lg">photo_camera</span>
+                            <span class="hidden sm:inline text-sm ml-1">Scan</span>
                         </button>
-                        <button onclick="searchVehicle()" class="btn-primary flex-shrink-0 !py-3 !px-4">
-                            <span class="material-symbols-outlined">search</span>
-                            <span class="hidden sm:inline ml-1">Search</span>
+                        <button onclick="searchVehicle()" class="btn-primary !w-auto flex-shrink-0 !py-2 !px-3">
+                            <span class="material-symbols-outlined text-base sm:text-lg">search</span>
+                            <span class="hidden sm:inline text-sm ml-1">Search</span>
                         </button>
                     </div>
                     <p id="search-error" class="text-red-500 text-sm mt-2 hidden"></p>
@@ -654,6 +653,25 @@
         const supabaseUrl = 'https://gfylsjfljnwyomfouwvs.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmeWxzamZsam53eW9tZm91d3ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MDc5MTYsImV4cCI6MjA3Mjk4MzkxNn0.hMvLvCDVaFtq0rXToHGOJPSFe-QnJ6_S-MYsI0d5zOs';
         const sb = createClient(supabaseUrl, supabaseKey);
+
+        // Global error handler for unhandled promise rejections.
+        // This is placed at the top level to catch any async errors during initialization.
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled Promise Rejection:', event.reason);
+            // Provide a more user-friendly message for common network errors.
+            let errorMessage = 'An unexpected error occurred. Please try again.';
+            if (event.reason instanceof Error) {
+                // Check for network-like errors which are common with DB calls
+                if (event.reason.message.toLowerCase().includes('failed to fetch') || event.reason.message.toLowerCase().includes('network')) {
+                     errorMessage = 'Network error. Please check your connection.';
+                } else {
+                    errorMessage = event.reason.message;
+                }
+            }
+            showError(errorMessage);
+            event.preventDefault(); // Prevent the browser's default console error
+        });
+
 
         // --- Global State ---
         let currentUser = null;
@@ -2052,3 +2070,5 @@ function deleteSuggestion(index) {
     </script>
 </body>
 </html>
+
+
