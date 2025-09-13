@@ -725,7 +725,8 @@
             ctx.drawImage(canvas, 0, 0);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
-            const contrast = 128; // Contrast level (0 to 128)
+            // Increased contrast for better screen reading
+            const contrast = 150; 
             const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
 
             for (let i = 0; i < data.length; i += 4) {
@@ -743,6 +744,27 @@
             }
             ctx.putImageData(imageData, 0, 0);
             return processedCanvas;
+        }
+
+        /**
+         * Corrects common OCR character misinterpretations based on context.
+         * @param {string} plate The detected number plate string.
+         * @returns {string} The corrected string.
+         */
+        function correctCommonMistakes(plate) {
+            let corrected = plate.split('');
+            // Example rules: B->8, S->5, O->0, I->1, Z->2
+            const corrections = { 'B': '8', 'S': '5', 'O': '0', 'I': '1', 'Z': '2', 'G': '6', 'Q': '0' };
+            
+            for (let i = 0; i < corrected.length; i++) {
+                // If it's in a position that SHOULD be a number
+                if (/\d/.test(plate.charAt(i))) {
+                    if (corrections[corrected[i]]) {
+                        corrected[i] = corrections[corrected[i]];
+                    }
+                }
+            }
+            return corrected.join('');
         }
 
         /**
@@ -876,9 +898,10 @@
                 const { data: { text } } = await worker.recognize(processedCanvas); // Use processed canvas
                 await worker.terminate();
                 
-                const bestMatch = findBestMatchForPlate(text);
+                let bestMatch = findBestMatchForPlate(text);
                 
                 if (bestMatch) {
+                    bestMatch = correctCommonMistakes(bestMatch); // Apply corrections
                     const finalNumber = normalizeVehicleNumber(bestMatch);
                     document.getElementById('search-vehicle-number').value = finalNumber;
                     showSuccessMessage(`Detected: ${finalNumber}`);
@@ -2165,4 +2188,5 @@ function deleteSuggestion(index) {
     </script>
 </body>
 </html>
+
 
