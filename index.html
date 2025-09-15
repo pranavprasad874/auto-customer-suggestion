@@ -693,6 +693,42 @@
         // --- OCR SCANNER FUNCTIONS (using OCR.space API) ---
         
         /**
+         * Resizes and compresses an image file before uploading.
+         * @param {File} file The original image file.
+         * @returns {Promise<File>} A promise that resolves with the new, smaller image file.
+         */
+        function resizeImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 1280; // Set a max width for efficiency
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+                            } else {
+                                reject(new Error('Canvas to Blob conversion failed'));
+                            }
+                        }, 'image/jpeg', 0.85); // Compress to 85% quality
+                    };
+                    img.onerror = reject;
+                    img.src = event.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        /**
          * Calls the OCR.space API to perform text recognition on an image file.
          * @param {File} imageFile The image file to be analyzed.
          * @returns {Promise<string>} A promise that resolves with the detected text.
@@ -761,20 +797,37 @@
             return null; // No valid format found
         }
 
-        function handleImageUpload(event) {
+        async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-            uploadedImageFile = file; // Store the file object
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imagePreview = document.getElementById('scanner-image-preview');
-                imagePreview.src = e.target.result;
-                showModal('scanner-modal');
-                document.getElementById('scanner-status').textContent = 'Image loaded. Click below to analyze.';
-                document.getElementById('analyze-btn').disabled = false;
-            };
-            reader.readAsDataURL(file);
+            showModal('scanner-modal');
+            const statusEl = document.getElementById('scanner-status');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            analyzeBtn.disabled = true;
+            statusEl.innerHTML = `
+                <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span>Processing image...</span>`;
+
+            try {
+                // Resize the image before doing anything else
+                const resizedFile = await resizeImage(file);
+                uploadedImageFile = resizedFile; // Store the resized file
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imagePreview = document.getElementById('scanner-image-preview');
+                    imagePreview.src = e.target.result;
+                    statusEl.textContent = 'Image loaded. Click below to analyze.';
+                    analyzeBtn.disabled = false;
+                };
+                reader.readAsDataURL(resizedFile);
+            } catch (error) {
+                console.error("Image processing error:", error);
+                showError("Could not process the selected image.");
+                closeScannerModal();
+            }
+            
             event.target.value = ''; // Reset file input
         }
 
@@ -2075,4 +2128,5 @@ function deleteSuggestion(index) {
     </script>
 </body>
 </html>
+
 
