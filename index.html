@@ -1046,18 +1046,19 @@
             resetVehicleUpdateScreen();
             resetJobCardState();
         }
-function handleDateChange(fromId, toId) {
-    const fromDateInput = document.getElementById(fromId);
-    const toDateInput = document.getElementById(toId);
 
-    if (fromDateInput.value) {
-        toDateInput.min = fromDateInput.value;
-    }
+        function handleDateChange(fromId, toId) {
+            const fromDateInput = document.getElementById(fromId);
+            const toDateInput = document.getElementById(toId);
 
-    if (toDateInput.value) {
-        fromDateInput.max = toDateInput.value;
-    }
-}
+            if (fromDateInput.value) {
+                toDateInput.min = fromDateInput.value;
+            }
+
+            if (toDateInput.value) {
+                fromDateInput.max = toDateInput.value;
+            }
+        }
         // --- ADMIN: VEHICLE MANAGEMENT ---
         async function renderVehicleModelList() {
             const { data, error } = await sb.from('vehicle_models').select('*').order('brand');
@@ -1513,7 +1514,7 @@ function handleDateChange(fromId, toId) {
                 list.appendChild(item);
             });
         }
-
+        
 		async function saveComplaints() {
             addComplaint(); 
             
@@ -1688,7 +1689,65 @@ function handleDateChange(fromId, toId) {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('delivery-date').setAttribute('min', today);
         }
-        
+
+        function addSuggestion() {
+            const input = document.getElementById('suggestion-input');
+            const suggestionText = input.value.trim();
+            if (suggestionText) {
+                newSuggestions.push(suggestionText);
+                input.value = '';
+                renderSuggestions();
+            }
+        }
+        function deleteSuggestion(index) {
+            newSuggestions.splice(index, 1);
+            renderSuggestions();
+        }
+
+        function renderSuggestions() {
+            const executiveList = document.getElementById('executive-suggestions-list');
+            const customerList = document.getElementById('customer-approval-list');
+            executiveList.innerHTML = '';
+            customerList.innerHTML = '';
+
+            // Part 1: Render original complaints as selectable items for approval
+            if (originalComplaintsForUpdate.length > 0) {
+                originalComplaintsForUpdate.forEach(text => {
+                    const customerItem = document.createElement('label');
+                    customerItem.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100';
+                    customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="flex-1">${text}</span>`;
+                    customerList.appendChild(customerItem);
+                });
+            }
+
+            // Part 2: Render NEW suggestions from the executive
+            if (newSuggestions.length > 0) {
+                newSuggestions.forEach((text, index) => {
+                    // Add to the executive's list WITH a delete button
+                    const execItem = document.createElement('div');
+                    execItem.className = 'flex items-center justify-between bg-blue-50 p-2 rounded-lg text-sm text-blue-800';
+                    execItem.innerHTML = `
+                        <p class="flex-1 mr-2">${text}</p>
+                        <button type="button" onclick="deleteSuggestion(${index})" class="text-red-500 hover:text-red-700 shrink-0">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    `;
+                    executiveList.appendChild(execItem);
+
+                    // Add as a selectable checkbox to the customer's approval list
+                    const customerItem = document.createElement('label');
+                    customerItem.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100';
+                    customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="flex-1">${text}</span>`;
+                    customerList.appendChild(customerItem);
+                });
+            }
+
+            // Handle empty state for customer approval list
+            if (customerList.innerHTML === '') {
+                customerList.innerHTML = '<p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p>';
+            }
+        }
+
         async function saveVehicleUpdate() {
             if(!currentReportId) return showError('No report selected for update.');
 
