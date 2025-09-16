@@ -1763,7 +1763,7 @@
 
             const vehicleIds = vehiclesData.map(v => v.id);
 
-            const { data } = await sb.from('reports').select(`id, complaint, vehicles!inner(vehicle_no)`).in('vehicle_id', vehicleIds).neq('status', 'Completed').limit(5);
+            const { data } = await sb.from('reports').select(`id, complaint, approved, vehicles!inner(vehicle_no)`).in('vehicle_id', vehicleIds).neq('status', 'Completed').limit(5);
             if (!data || data.length === 0) {
                 predictionList.classList.add('hidden');
                 return;
@@ -1814,7 +1814,8 @@
                  complaintDisplayDiv.classList.add('hidden');
             }
 
-            renderSuggestions();
+            const approvedItems = report.approved ? JSON.parse(report.approved) : [];
+            renderSuggestions(approvedItems);
             renderMaterials();
 
             const today = new Date().toISOString().split('T')[0];
@@ -1835,39 +1836,38 @@
             renderSuggestions();
         }
 
-        function renderSuggestions() {
+        function renderSuggestions(approvedItems = []) {
             const executiveList = document.getElementById('executive-suggestions-list');
             const customerList = document.getElementById('customer-approval-list');
             executiveList.innerHTML = '';
             customerList.innerHTML = '';
+            
+            const allSuggestions = [...new Set([...originalComplaintsForUpdate, ...newSuggestions])];
 
-            if (originalComplaintsForUpdate.length > 0) {
-                originalComplaintsForUpdate.forEach(text => {
+            if (allSuggestions.length > 0) {
+                 allSuggestions.forEach(text => {
+                    const isApproved = approvedItems.includes(text);
+                    const isNew = newSuggestions.includes(text);
+                    
+                    if (isNew) {
+                         const execItem = document.createElement('div');
+                        execItem.className = 'flex items-center justify-between bg-blue-50 p-2 rounded-lg text-sm text-blue-800';
+                        execItem.innerHTML = `
+                            <p class="flex-1 mr-2">${text}</p>
+                            <button type="button" onclick="deleteSuggestion(${newSuggestions.indexOf(text)})" class="text-red-500 hover:text-red-700 shrink-0">
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
+                        `;
+                        executiveList.appendChild(execItem);
+                    }
+
                     const customerItem = document.createElement('label');
                     customerItem.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100';
-                    customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="flex-1">${text}</span>`;
+                    customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${isApproved ? 'checked' : ''}><span class="flex-1">${text}</span>`;
                     customerList.appendChild(customerItem);
                 });
             }
 
-            if (newSuggestions.length > 0) {
-                newSuggestions.forEach((text, index) => {
-                    const execItem = document.createElement('div');
-                    execItem.className = 'flex items-center justify-between bg-blue-50 p-2 rounded-lg text-sm text-blue-800';
-                    execItem.innerHTML = `
-                        <p class="flex-1 mr-2">${text}</p>
-                        <button type="button" onclick="deleteSuggestion(${index})" class="text-red-500 hover:text-red-700 shrink-0">
-                            <span class="material-symbols-outlined">delete</span>
-                        </button>
-                    `;
-                    executiveList.appendChild(execItem);
-
-                    const customerItem = document.createElement('label');
-                    customerItem.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100';
-                    customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="flex-1">${text}</span>`;
-                    customerList.appendChild(customerItem);
-                });
-            }
 
             if (customerList.innerHTML === '') {
                 customerList.innerHTML = '<p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p>';
@@ -1909,7 +1909,28 @@
         async function saveVehicleUpdate(shouldReset = true) {
             if(!currentReportId) return showError('No report selected for update.');
 
-// ... existing code ... -->
+            const deliveryDate = document.getElementById('delivery-date').value;
+            if(!deliveryDate) return showError('Please select an expected delivery date.');
+
+            const approvedItems = [];
+            document.querySelectorAll('#customer-approval-list input[type="checkbox"]:checked').forEach(checkbox => {
+                approvedItems.push(checkbox.nextElementSibling.textContent);
+            });
+
+            const allSuggestions = [...new Set([...originalComplaintsForUpdate, ...newSuggestions])];
+
+            const updateData = {
+                suggested: JSON.stringify(allSuggestions),
+                approved: JSON.stringify(approvedItems),
+                materials_required: JSON.stringify(requiredMaterials),
+                expected_delivery: deliveryDate,
+                status: 'Ongoing'
+            };
+
+            const { error } = await sb.from('reports').update(updateData).eq('id', currentReportId);
+            if(error) return showError(`Failed to save update: ${error.message}`);
+
+            showSuccessMessage('Update saved successfully!');
             if (shouldReset) {
                 resetVehicleUpdateScreen();
             }
@@ -2672,5 +2693,4 @@
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
-
 
