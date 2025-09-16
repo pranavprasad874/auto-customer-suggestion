@@ -16,10 +16,6 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-    <!-- Google API Client Libraries -->
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
     <style type="text/tailwindcss">
         :root {
             --primary-color: #2563eb; /* Blue 600 */
@@ -691,6 +687,30 @@
         </div>
     </div>
 </div>
+    
+    <script>
+        // --- Google API Client Libraries ---
+        // Moved to bottom of body to ensure functions are defined before they are called.
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: (resp) => { // Centralized callback
+                    if (resp.error !== undefined) {
+                        showError('Authorization failed. Please try again.');
+                        throw (resp);
+                    }
+                    updateAuthUI(true);
+                    showSuccessMessage('Google Drive access authorized.');
+                },
+            });
+            gisInited = true;
+            checkInitialAuth();
+        }
+    </script>
     <script>
         const { createClient } = supabase;
         const supabaseUrl = 'https://gfylsjfljnwyomfouwvs.supabase.co';
@@ -1031,6 +1051,8 @@
                 document.getElementById('profile-username').textContent = currentUser.username;
                 document.getElementById('profile-role').textContent = currentUser.role;
                 showExecutiveScreen('job-card-screen');
+                // Use a timeout to ensure the Google libraries have loaded.
+                setTimeout(checkInitialAuth, 1000);
             } else {
                 return showError('Unknown user role.');
             }
@@ -1171,9 +1193,9 @@
             }
 
             let query = sb.from('reports').select(`
-                *,
+                id, created_at, status, complaint, suggested, approved, marks, odometer_reading, client_name, client_phone, gdrive_folder_url,
                 vehicles!inner( 
-                    *, 
+                    id, vehicle_no, vehicle_name, color, engine_no, chassis_no, 
                     vehicle_models!inner( brand, model ) 
                 ),
                 users!inner( username )
@@ -1237,9 +1259,9 @@
                     marksButton = `<button onclick='openMarksModal(${JSON.stringify(row.marks)})' class="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs">View</button>`;
                 }
 
-                let mediaLink = 'N/A';
+                let mediaLink = '<span class="text-xs text-gray-500">Not Uploaded</span>';
                 if (row.gdrive_folder_url) {
-                    mediaLink = `<a href="${row.gdrive_folder_url}" target="_blank" class="text-blue-600 hover:underline text-xs">View Files</a>`;
+                    mediaLink = `<a href="${row.gdrive_folder_url}" target="_blank" class="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs font-semibold">View Files</a>`;
                 }
 
                 tr.innerHTML = `
@@ -1530,6 +1552,7 @@
                         showError('Authorization failed. Please try again.');
                         throw (resp);
                     }
+                    updateAuthUI(true);
                     showSuccessMessage('Google Drive authorized. Now saving...');
                     await saveComplaints(); // Re-run the save function after auth
                 };
@@ -1586,11 +1609,14 @@
                 await Promise.all(uploadPromises);
                 
                 const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
-                await sb.from('reports').update({ gdrive_folder_url: folderUrl }).eq('id', reportId);
+                const { error: updateError } = await sb.from('reports').update({ gdrive_folder_url: folderUrl }).eq('id', reportId);
+                if (updateError) {
+                    throw updateError;
+                }
                 showSuccessMessage('Media uploaded successfully!');
             } catch (driveError) {
-                console.error('Google Drive Upload Error:', driveError);
-                showError('Report saved, but media upload to Drive failed.');
+                console.error('Google Drive or DB Update Error:', driveError);
+                showError('Media upload failed. Please check Google Drive authorization on your Profile page and try again.');
             }
 
             // --- Update Vehicle Details (as before) ---
@@ -1690,7 +1716,7 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('delivery-date').setAttribute('min', today);
         }
-
+        
         function addSuggestion() {
             const input = document.getElementById('suggestion-input');
             const suggestionText = input.value.trim();
@@ -2128,46 +2154,54 @@
         }
 
         // --- Google Drive API Functions ---
-        function gapiLoaded() {
-            gapi.load('client', initializeGapiClient);
-        }
+        
         async function initializeGapiClient() {
             await gapi.client.init({
                 apiKey: API_KEY,
                 discoveryDocs: DISCOVERY_DOCS,
             });
             gapiInited = true;
+            checkInitialAuth();
         }
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: '', // defined later
-            });
-            gisInited = true;
+
+        function checkInitialAuth() {
+            // This function is called when GAPI and GIS libs are loaded, and after login.
+            // It ensures we check for an existing token once everything is ready.
+            if (gapiInited && gisInited && sessionStorage.getItem('currentUser')) {
+                // The token might be in the gapi client from a previous session
+                updateAuthUI(gapi.client.getToken() !== null);
+            }
         }
-        function handleAuthClick() {
-            tokenClient.callback = async (resp) => {
-                if (resp.error !== undefined) {
-                    throw (resp);
+        
+        function updateAuthUI(isSignedIn) {
+            const authButton = document.getElementById('auth-button');
+            const signOutButton = document.getElementById('signout-button');
+            if(authButton && signOutButton) {
+                if (isSignedIn) {
+                    signOutButton.classList.remove('hidden');
+                    authButton.textContent = 'Google Drive Authorized';
+                    authButton.disabled = true;
+                } else {
+                    signOutButton.classList.add('hidden');
+                    authButton.textContent = 'Authorize Google Drive';
+                    authButton.disabled = false;
                 }
-                document.getElementById('signout-button').classList.remove('hidden');
-                document.getElementById('auth-button').textContent = 'Google Drive Authorized';
-                document.getElementById('auth-button').disabled = true;
-                 showSuccessMessage('Google Drive access authorized.');
-            };
+            }
+        }
+
+        function handleAuthClick() {
             if (gapi.client.getToken() === null) {
+                // Prompt the user for consent if no token is present
                 tokenClient.requestAccessToken({prompt: 'consent'});
             }
         }
         function handleSignoutClick() {
             const token = gapi.client.getToken();
             if (token !== null) {
-                google.accounts.oauth2.revoke(token.access_token);
-                gapi.client.setToken('');
-                document.getElementById('auth-button').textContent = 'Authorize Google Drive';
-                document.getElementById('auth-button').disabled = false;
-                document.getElementById('signout-button').classList.add('hidden');
+                google.accounts.oauth2.revoke(token.access_token, () => {
+                    gapi.client.setToken('');
+                    updateAuthUI(false);
+                });
             }
         }
         async function createDriveFolder(folderName) {
@@ -2319,7 +2353,7 @@
             if (printImage.complete) {
                 drawMarksAndPrint();
             } else {
-                printImage.onload = drawMarksAnd-print;
+                printImage.onload = drawMarksAndPrint;
             }
         }
 
@@ -2384,7 +2418,7 @@
     showSuccessMessage("Report is downloading...");
 }
     </script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
-
-
