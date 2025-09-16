@@ -812,11 +812,9 @@
         const sb = createClient(supabaseUrl, supabaseKey);
 
         // --- Google Drive API Configuration ---
-        // PASTE YOUR CREDENTIALS HERE
         const CLIENT_ID = '903962440902-olb0km18p980o04na5hi4ah4f6lanms1.apps.googleusercontent.com'; // Paste your OAuth 2.0 Client ID here
         const API_KEY = 'AIzaSyDq39bo-QQRWbPWM0qWcolswBdkBpiLR3w'; // Paste your API Key here
         const PARENT_FOLDER_ID = '1jmD_XBl_4a_FEvT3xQ9RKgH7-26gmM30'; // Paste your Google Drive Folder ID here
-        // END OF CONFIGURATION
 
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
@@ -824,22 +822,6 @@
         let tokenClient;
         let gapiInited = false;
         let gisInited = false;
-
-        // Global error handler for unhandled promise rejections.
-        window.addEventListener('unhandledrejection', function(event) {
-            console.error('Unhandled Promise Rejection:', event.reason);
-            let errorMessage = 'An unexpected error occurred. Please try again.';
-            if (event.reason instanceof Error) {
-                if (event.reason.message.toLowerCase().includes('failed to fetch') || event.reason.message.toLowerCase().includes('network')) {
-                     errorMessage = 'Network error. Please check your connection.';
-                } else {
-                    errorMessage = event.reason.message;
-                }
-            }
-            showError(errorMessage);
-            event.preventDefault();
-        });
-
 
         // --- Global State ---
         let currentUser = null;
@@ -855,27 +837,41 @@
         let originalClientPhone = '';
         let damageMarks = [];
         let uploadedImageFile = null;
-
-        // Media recording state
         let capturedPhotos = [];
         let voiceNoteBlob = null;
         let mediaRecorder;
         let audioChunks = [];
+        let currentMaterials = [];
+        let recordedAudioBlob = null;
         
         // --- UI Element References ---
-        const vehicleDetailsSection = document.getElementById('vehicle-details-section'), createVehicleSection = document.getElementById('create-vehicle-section'), newComplaintSection = document.getElementById('new-complaint-section'), searchError = document.getElementById('search-error');
-        const predictionList = document.getElementById('prediction-list'), updateDetailsSection = document.getElementById('update-details-section'), updateFormSection = document.getElementById('update-form-section');
+        const vehicleDetailsSection = document.getElementById('vehicle-details-section');
+        const createVehicleSection = document.getElementById('create-vehicle-section');
+        const newComplaintSection = document.getElementById('new-complaint-section');
+        const searchError = document.getElementById('search-error');
+        const predictionList = document.getElementById('prediction-list');
+        const updateDetailsSection = document.getElementById('update-details-section');
+        const updateFormSection = document.getElementById('update-form-section');
 
         // --- Canvas-related variables ---
         let carImage, damageCanvas, checkCanvas, damageCtx, checkCtx;
-
-        // --- OCR SCANNER FUNCTIONS (using OCR.space API) ---
         
-        /**
-         * Resizes and compresses an image file before uploading.
-         * @param {File} file The original image file.
-         * @returns {Promise<File>} A promise that resolves with the new, smaller image file.
-         */
+        // --- Global Error Handler ---
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled Promise Rejection:', event.reason);
+            let errorMessage = 'An unexpected error occurred. Please try again.';
+            if (event.reason instanceof Error) {
+                if (event.reason.message.toLowerCase().includes('failed to fetch') || event.reason.message.toLowerCase().includes('network')) {
+                     errorMessage = 'Network error. Please check your connection.';
+                } else {
+                    errorMessage = event.reason.message;
+                }
+            }
+            showError(errorMessage);
+            event.preventDefault();
+        });
+
+        // --- OCR & Media Functions ---
         function resizeImage(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -883,21 +879,19 @@
                     const img = new Image();
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 1280; // Set a max width for efficiency
+                        const MAX_WIDTH = 1280;
                         const scaleSize = MAX_WIDTH / img.width;
                         canvas.width = MAX_WIDTH;
                         canvas.height = img.height * scaleSize;
-
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
                         canvas.toBlob((blob) => {
                             if (blob) {
                                 resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
                             } else {
                                 reject(new Error('Canvas to Blob conversion failed'));
                             }
-                        }, 'image/jpeg', 0.85); // Compress to 85% quality
+                        }, 'image/jpeg', 0.85);
                     };
                     img.onerror = reject;
                     img.src = event.target.result;
@@ -906,80 +900,47 @@
                 reader.readAsDataURL(file);
             });
         }
-
-        /**
-         * Calls the OCR.space API to perform text recognition on an image file.
-         * @param {File} imageFile The image file to be analyzed.
-         * @returns {Promise<string>} A promise that resolves with the detected text.
-         */
         async function callOcrSpaceAPI(imageFile) {
             const statusEl = document.getElementById('scanner-status');
             statusEl.innerHTML = `
                 <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 <span>Analyzing with OCR...</span>`;
-            
             const formData = new FormData();
             formData.append('file', imageFile);
-            // Using the free "helloworld" API key for demonstration. 
-            // For a production app, get your own free key from OCR.space.
             formData.append('apikey', 'helloworld');
             formData.append('language', 'eng');
-            formData.append('ocrengine', 2); // Engine 2 is often better for single blocks of text.
-
+            formData.append('ocrengine', 2);
             const response = await fetch('https://api.ocr.space/parse/image', {
                 method: 'POST',
                 body: formData,
             });
-
-            if (!response.ok) {
-                throw new Error(`API request failed with status ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
             const result = await response.json();
-
-            if (result.IsErroredOnProcessing) {
-                throw new Error(result.ErrorMessage.join(' '));
-            }
-            
+            if (result.IsErroredOnProcessing) throw new Error(result.ErrorMessage.join(' '));
             if (result.ParsedResults && result.ParsedResults.length > 0) {
                  return result.ParsedResults[0].ParsedText;
             } else {
-                return ''; // No text found
+                return '';
             }
         }
-
-
-        /**
-         * Finds the most likely Indian vehicle number plate from raw OCR text.
-         * @param {string} text Raw text from the OCR API.
-         * @returns {string|null} The best matching number plate or null.
-         */
         function findBestMatchForPlate(text) {
             if (!text) return null;
-            // Clean the text by removing spaces, newlines, and common misread characters.
             const cleanedText = text.replace(/[\s\n\r\t.,!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '').toUpperCase();
-            
-            // Regex patterns for common Indian number plates. Ordered from most to least specific.
             const patterns = [
-                /\d{2}BH\d{4}[A-Z]{2}/,      // BH Series: 21BH2345AA
-                /[A-Z]{2}\d{1,2}[A-Z]{1,2}\d{4}/, // Standard format like DL8CAC4194 or KA19P8488
-                /[A-Z]{2}\d{2}[A-Z]{1,2}\d{3}/, // e.g., TN37C987
-                /[A-Z]{2}\d{2}[A-Z]{1,2}\d{1,4}/, // Generic catch-all
+                /\d{2}BH\d{4}[A-Z]{2}/,
+                /[A-Z]{2}\d{1,2}[A-Z]{1,2}\d{4}/,
+                /[A-Z]{2}\d{2}[A-Z]{1,2}\d{3}/,
+                /[A-Z]{2}\d{2}[A-Z]{1,2}\d{1,4}/,
             ];
-
             for (const pattern of patterns) {
                 const match = cleanedText.match(pattern);
-                if (match) {
-                    return match[0]; // Return the first valid format found
-                }
+                if (match) return match[0];
             }
-            return null; // No valid format found
+            return null;
         }
-
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             showModal('scanner-modal');
             const statusEl = document.getElementById('scanner-status');
             const analyzeBtn = document.getElementById('analyze-btn');
@@ -987,16 +948,12 @@
             statusEl.innerHTML = `
                 <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 <span>Processing image...</span>`;
-
             try {
-                // Resize the image before doing anything else
                 const resizedFile = await resizeImage(file);
-                uploadedImageFile = resizedFile; // Store the resized file
-
+                uploadedImageFile = resizedFile;
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const imagePreview = document.getElementById('scanner-image-preview');
-                    imagePreview.src = e.target.result;
+                    document.getElementById('scanner-image-preview').src = e.target.result;
                     statusEl.textContent = 'Image loaded. Click below to analyze.';
                     analyzeBtn.disabled = false;
                 };
@@ -1006,42 +963,34 @@
                 showError("Could not process the selected image.");
                 closeScannerModal();
             }
-            
-            event.target.value = ''; // Reset file input
+            event.target.value = '';
         }
-
         function closeScannerModal() {
-            const imagePreview = document.getElementById('scanner-image-preview');
-            imagePreview.src = '';
+            document.getElementById('scanner-image-preview').src = '';
             uploadedImageFile = null;
             hideModal('scanner-modal');
         }
-
         async function analyzeImageWithAPI() {
             if (!uploadedImageFile) {
                 showError("No image selected to process.");
                 return;
             }
-
             const analyzeBtn = document.getElementById('analyze-btn');
             analyzeBtn.disabled = true;
-
             try {
                 const textFromAPI = await callOcrSpaceAPI(uploadedImageFile);
                 const bestMatch = findBestMatchForPlate(textFromAPI);
-                
                 if (bestMatch) {
                     const finalNumber = normalizeVehicleNumber(bestMatch);
                     document.getElementById('search-vehicle-number').value = finalNumber;
                     showSuccessMessage(`Detected: ${finalNumber}`);
                     closeScannerModal();
-                    searchVehicle(); // Automatically search
+                    searchVehicle();
                 } else {
                     showError('Could not find a valid number plate in the image.');
                     document.getElementById('scanner-status').textContent = 'No number plate found. Try a clearer shot.';
                     analyzeBtn.disabled = false;
                 }
-
             } catch (error) {
                 console.error("API Error:", error);
                 showError("An error occurred during analysis: " + error.message);
@@ -1049,31 +998,23 @@
                 analyzeBtn.disabled = false;
             }
         }
-        
-        // --- Media Upload & Recording Functions ---
-
         function handlePhotoUploads(event) {
             const files = event.target.files;
             if (!files) return;
-
             const previewsContainer = document.getElementById('photo-previews');
-            previewsContainer.innerHTML = ''; // Clear existing previews
-            capturedPhotos = Array.from(files); // Store the file objects
-
+            previewsContainer.innerHTML = '';
+            capturedPhotos = Array.from(files);
             for (const file of capturedPhotos) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const previewWrapper = document.createElement('div');
                     previewWrapper.className = 'relative aspect-square';
-                    previewWrapper.innerHTML = `
-                        <img src="${e.target.result}" class="w-full h-full object-cover rounded-lg">
-                    `;
+                    previewWrapper.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-lg">`;
                     previewsContainer.appendChild(previewWrapper);
                 };
                 reader.readAsDataURL(file);
             }
         }
-
         async function startRecording() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 showError('Audio recording is not supported on this browser.');
@@ -1083,18 +1024,14 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
-
                 mediaRecorder.addEventListener("dataavailable", event => {
                     audioChunks.push(event.data);
                 });
-
                 mediaRecorder.addEventListener("stop", () => {
                     voiceNoteBlob = new Blob(audioChunks, { 'type' : 'audio/webm' });
                     const audioUrl = URL.createObjectURL(voiceNoteBlob);
-                    const audioPlayback = document.getElementById('audio-playback');
-                    audioPlayback.innerHTML = `<audio controls src="${audioUrl}" class="w-full"></audio>`;
+                    document.getElementById('audio-playback').innerHTML = `<audio controls src="${audioUrl}" class="w-full"></audio>`;
                 });
-
                 mediaRecorder.start();
                 document.getElementById('record-btn').classList.add('hidden');
                 document.getElementById('stop-record-btn').classList.remove('hidden');
@@ -1104,7 +1041,6 @@
                 console.error("Mic Error:", err);
             }
         }
-
         function stopRecording() {
             if (mediaRecorder) {
                 mediaRecorder.stop();
@@ -1114,45 +1050,29 @@
             }
         }
 
-        // --- AUTHENTICATION & UTILITIES ---
+        // --- AUTH & CORE ---
         const normalizeVehicleNumber = (num) => {
             if (!num) return '';
-            // This function remains simple as the regex matching already provides a clean string.
             return num.toUpperCase();
         };
-
         async function login() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
             if (!username || !password) return showError('Username and password are required.');
-
-            const { data, error } = await sb
-                .from('users')
-                .select('*')
-                .ilike('username', username)
-                .single();
-
-            if (error || !data || data.password.toLowerCase() !== password.toLowerCase()) {
-    	    return showError('Invalid credentials.');
-           }
-            
+            const { data, error } = await sb.from('users').select('*').ilike('username', username).single();
+            if (error || !data || data.password.toLowerCase() !== password.toLowerCase()) return showError('Invalid credentials.');
             currentUser = data;
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser)); 
-            
             if (currentUser.role === 'admin') {
                 showAdminScreen('admin-dashboard-screen');
             } else if (currentUser.role === 'executive') {
                 document.getElementById('profile-username').textContent = currentUser.username;
                 document.getElementById('profile-role').textContent = currentUser.role;
                 showExecutiveScreen('job-card-screen');
-                // Use a timeout to ensure the Google libraries have loaded.
                 setTimeout(checkInitialAuth, 1000);
-            } else {
-                return showError('Unknown user role.');
-            }
+            } else return showError('Unknown user role.');
             showSuccessMessage(`Welcome, ${currentUser.username}!`);
         }
-
         function logout() {
             currentUser = null;
             sessionStorage.removeItem('currentUser');
@@ -1163,31 +1083,21 @@
             resetVehicleUpdateScreen();
             resetJobCardState();
         }
-
         function handleDateChange(fromId, toId) {
             const fromDateInput = document.getElementById(fromId);
             const toDateInput = document.getElementById(toId);
-
-            if (fromDateInput.value) {
-                toDateInput.min = fromDateInput.value;
-            }
-
-            if (toDateInput.value) {
-                fromDateInput.max = toDateInput.value;
-            }
+            if (fromDateInput.value) toDateInput.min = fromDateInput.value;
+            if (toDateInput.value) fromDateInput.max = toDateInput.value;
         }
-        // --- ADMIN: VEHICLE MANAGEMENT ---
+
+        // --- ADMIN & MANAGEMENT ---
         async function renderVehicleModelList() {
             const { data, error } = await sb.from('vehicle_models').select('*').order('brand');
             if (error) return showError('Could not fetch vehicle models.');
-            
             vehicleModelsCache = data; 
             const list = document.getElementById('vehicle-models-list');
             list.innerHTML = '';
-            if (data.length === 0) {
-                list.innerHTML = `<p class="text-sm text-gray-500">No vehicle models created yet.</p>`;
-                return;
-            }
+            if (data.length === 0) { list.innerHTML = `<p class="text-sm text-gray-500">No vehicle models created yet.</p>`; return; }
             data.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
@@ -1195,29 +1105,22 @@
                 list.appendChild(div);
             });
         }
-        
         async function addVehicleModel() {
             const brand = document.getElementById('new-brand-admin').value.trim();
             const model = document.getElementById('new-model-admin').value.trim();
             if (!brand || !model) return showError('Brand and model are required.');
-
             const { error } = await sb.from('vehicle_models').insert({ brand, model });
             if (error) return showError(`Could not add model: ${error.message}`);
-            
             document.getElementById('add-vehicle-model-form').reset();
             showSuccessMessage("Vehicle model added.");
             renderVehicleModelList();
         }
-
-        // --- ADMIN: USER MANAGEMENT ---
         async function renderUserList(role) {
             const listId = role === 'admin' ? 'admins-list' : 'executives-list';
             const list = document.getElementById(listId);
             list.innerHTML = '';
-
             const { data, error } = await sb.from('users').select('id, username').eq('role', role);
             if(error) return showError(`Could not fetch ${role}s.`);
-            
             data.forEach(user => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
@@ -1225,144 +1128,79 @@
                 list.appendChild(div);
             });
         }
-
         async function addUser(role) {
             const usernameInputId = role === 'admin' ? 'new-admin-username' : 'new-exec-username';
             const passwordInputId = role === 'admin' ? 'new-admin-pass' : 'new-exec-pass';
             const formId = role === 'admin' ? 'add-admin-form' : 'add-exec-form';
-
             const username = document.getElementById(usernameInputId).value.trim();
             const password = document.getElementById(passwordInputId).value.trim();
-
             if(!username || !password) return showError('Username and password are required.');
-
             const { error } = await sb.from('users').insert({ username, password, role });
             if(error) return showError(`Could not create ${role}: ${error.message}`);
-            
             showSuccessMessage(`${role.charAt(0).toUpperCase() + role.slice(1)} created.`);
             document.getElementById(formId).reset();
             renderUserList(role);
         }
 
-        // --- ADMIN & EXECUTIVE: REPORTS ---
+        // --- REPORTS & ANALYTICS ---
         async function fetchAndPopulateReports(isAdmin = false) {
             const tableBodyId = isAdmin ? 'admin-report-table-body' : 'report-table-body';
             const noReportsMsgId = isAdmin ? 'admin-no-reports-message' : 'no-reports-message';
-            
             const tableBody = document.getElementById(tableBodyId);
             const noReportsMsg = document.getElementById(noReportsMsgId);
-
-           const fromDate = document.getElementById(isAdmin ? 'admin-filter-from-date' : 'filter-from-date').value;
+            const fromDate = document.getElementById(isAdmin ? 'admin-filter-from-date' : 'filter-from-date').value;
             const toDate = document.getElementById(isAdmin ? 'admin-filter-to-date' : 'filter-to-date').value;
-            
             const vehicleNo = document.getElementById(isAdmin ? 'admin-filter-vehicle-no' : 'filter-vehicle-no').value.trim().toUpperCase();
             const brand = document.getElementById(isAdmin ? 'admin-filter-brand' : 'filter-brand').value.trim();
             const execName = document.getElementById(isAdmin ? 'admin-filter-exec-name' : 'filter-exec-name').value.trim();
-
             let vehicleIdFilter = null;
-
             const intersect = (arr1, arr2) => arr1.filter(id => new Set(arr2).has(id));
-
             if (vehicleNo) {
                 const { data, error } = await sb.from('vehicles').select('id').ilike('vehicle_no', `%${vehicleNo}%`);
                 vehicleIdFilter = data ? data.map(v => v.id) : [];
             }
-
             if (brand) {
                 const { data: models } = await sb.from('vehicle_models').select('id').ilike('brand', `%${brand}%`);
                 const modelIds = models && models.length > 0 ? models.map(m => m.id) : null;
-
                 if (modelIds) {
                     const { data: vehicles } = await sb.from('vehicles').select('id').in('model_id', modelIds);
                     const brandVehicleIds = vehicles ? vehicles.map(v => v.id) : [];
-                    
-                    if (vehicleIdFilter !== null) {
-                        vehicleIdFilter = intersect(vehicleIdFilter, brandVehicleIds);
-                    } else {
-                        vehicleIdFilter = brandVehicleIds;
-                    }
-                } else {
-                    vehicleIdFilter = [];
-                }
+                    if (vehicleIdFilter !== null) vehicleIdFilter = intersect(vehicleIdFilter, brandVehicleIds);
+                    else vehicleIdFilter = brandVehicleIds;
+                } else vehicleIdFilter = [];
             }
-
-            let query = sb.from('reports').select(`
-                id, created_at, status, complaint, suggested, approved, marks, odometer_reading, client_name, client_phone, gdrive_folder_url,
-                vehicles!inner( 
-                    id, vehicle_no, vehicle_name, color, engine_no, chassis_no, 
-                    vehicle_models!inner( brand, model ) 
-                ),
-                users!inner( username )
-            `).order('created_at', { ascending: false });
-
+            let query = sb.from('reports').select(`*, vehicles!inner(*, vehicle_models!inner(brand, model)), users!inner(username)`).order('created_at', { ascending: false });
             if (vehicleIdFilter !== null) {
-                if (vehicleIdFilter.length === 0) {
-                    tableBody.innerHTML = '';
-                    noReportsMsg.classList.remove('hidden');
-                    return;
-                }
+                if (vehicleIdFilter.length === 0) { tableBody.innerHTML = ''; noReportsMsg.classList.remove('hidden'); return; }
                 query = query.in('vehicle_id', vehicleIdFilter);
             }
-            
             if (execName) {
                 const { data } = await sb.from('users').select('id').ilike('username', `%${execName}%`);
                 const userIds = data ? data.map(u => u.id) : [];
-                if (userIds.length > 0) {
-                    query = query.in('executive_id', userIds);
-                } else {
-                    tableBody.innerHTML = '';
-                    noReportsMsg.classList.remove('hidden');
-                    return;
-                }
-            } else if (!isAdmin) {
-                query = query.eq('executive_id', currentUser.id);
-            }
-
-            if (fromDate) {
-                query = query.gte('created_at', `${fromDate}T00:00:00`);
-            }
-            if (toDate) {
-                query = query.lte('created_at', `${toDate}T23:59:59`);
-            }
-           
-
+                if (userIds.length > 0) query = query.in('executive_id', userIds);
+                else { tableBody.innerHTML = ''; noReportsMsg.classList.remove('hidden'); return; }
+            } else if (!isAdmin) query = query.eq('executive_id', currentUser.id);
+            if (fromDate) query = query.gte('created_at', `${fromDate}T00:00:00`);
+            if (toDate) query = query.lte('created_at', `${toDate}T23:59:59`);
             const { data, error } = await query;
-            if (error) {
-                console.error('Filter Error:', error);
-                return showError('Failed to fetch filtered reports.');
-            }
-            
+            if (error) { console.error('Filter Error:', error); return showError('Failed to fetch filtered reports.'); }
             reportsDataStore = {};
-            data.forEach(row => {
-                reportsDataStore[row.id] = row;
-            });
-
-
+            data.forEach(row => reportsDataStore[row.id] = row);
             tableBody.innerHTML = '';
-            if (data.length === 0) {
-                noReportsMsg.classList.remove('hidden');
-                return;
-            }
+            if (data.length === 0) { noReportsMsg.classList.remove('hidden'); return; }
             noReportsMsg.classList.add('hidden');
-            
             const statusColors = { 'Completed': 'bg-green-100 text-green-800', 'Ongoing': 'bg-orange-100 text-orange-800', 'Not Started': 'bg-red-100 text-red-800' };
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 let marksButton = 'N/A';
-                if (row.marks && row.marks.length > 2) { 
-                    marksButton = `<button onclick='openMarksModal(${JSON.stringify(row.marks)})' class="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs">View</button>`;
-                }
-
+                if (row.marks && row.marks.length > 2) marksButton = `<button onclick='openMarksModal(${JSON.stringify(row.marks)})' class="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs">View</button>`;
                 let mediaLink = '<span class="text-xs text-gray-500">Not Uploaded</span>';
-                if (row.gdrive_folder_url) {
-                    mediaLink = `<a href="${row.gdrive_folder_url}" target="_blank" class="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs font-semibold">View Files</a>`;
-                }
-
+                if (row.gdrive_folder_url) mediaLink = `<a href="${row.gdrive_folder_url}" target="_blank" class="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs font-semibold">View Files</a>`;
+                let voiceNotePlayer = 'N/A';
+                if(row.customer_feedback_audio) voiceNotePlayer = `<audio controls src="${row.customer_feedback_audio}" class="w-48 h-8"></audio>`;
+                
                 tr.innerHTML = `
-                    <td class="flex items-center gap-x-2">
-                        <button onclick='printJobCardById(${row.id})' class="text-gray-500 hover:text-green-600 p-1 rounded-full shrink-0"><span class="material-symbols-outlined">download</span></button>
-                        <span>${row.vehicles.vehicle_no}</span>
-                    </td>
+                    <td class="flex items-center gap-x-2"><button onclick='printJobCardById(${row.id})' class="text-gray-500 hover:text-green-600 p-1 rounded-full shrink-0"><span class="material-symbols-outlined">download</span></button><span>${row.vehicles.vehicle_no}</span></td>
                     <td>${row.vehicles.vehicle_name || 'N/A'}</td>
                     <td>${row.vehicles.vehicle_models.model}</td>
                     <td>${row.vehicles.vehicle_models.brand}</td>
@@ -1378,15 +1216,17 @@
                     <td class="whitespace-normal max-w-xs truncate" title="${formatArrayCell(row.complaint)}">${formatArrayCell(row.complaint)}</td>
                     <td class="whitespace-normal max-w-xs truncate" title="${formatArrayCell(row.suggested)}">${formatArrayCell(row.suggested)}</td>
                     <td class="whitespace-normal max-w-xs truncate" title="${formatArrayCell(row.approved)}">${formatArrayCell(row.approved)}</td>
+                    <td class="whitespace-normal max-w-xs truncate" title="${formatArrayCell(row.materials_required)}">${formatArrayCell(row.materials_required)}</td>
                     <td>${marksButton}</td>
                     <td>${mediaLink}</td>
+                    <td class="whitespace-normal max-w-xs truncate" title="${row.customer_feedback_text || ''}">${row.customer_feedback_text || 'N/A'}</td>
+                    <td>${voiceNotePlayer}</td>
                 `;
                 tableBody.appendChild(tr);
             });
         }
-        
         function applyAdminReportFilters() { fetchAndPopulateReports(true); }
-       function clearAdminReportFilters() { 
+        function clearAdminReportFilters() { 
             document.getElementById('admin-report-filters').querySelectorAll('input, select').forEach(input => input.value = ''); 
             document.getElementById('admin-filter-to-date').min = '';
             document.getElementById('admin-filter-from-date').max = '';
@@ -1399,33 +1239,24 @@
             document.getElementById('filter-from-date').max = '';
             fetchAndPopulateReports(false); 
         }
-
-
         async function renderAnalytics() {
             const month = document.getElementById('analytics-month-filter').value;
             const executiveId = document.getElementById('analytics-exec-filter').value;
             const executiveName = document.getElementById('analytics-exec-filter').selectedOptions[0].text;
-
             let query = sb.from('reports').select('status');
             if(month) query = query.like('created_at', `${month}%`);
             if(executiveId) query = query.eq('executive_id', executiveId);
-
             const { data, error } = await query;
             if(error) return showError('Failed to get analytics data.');
-            
             const completed = data.filter(r => r.status === 'Completed').length;
             const pending = data.length - completed;
             const total = data.length;
             const completedPercent = total > 0 ? (completed / total * 100).toFixed(1) : 0;
             const pendingPercent = total > 0 ? (pending / total * 100).toFixed(1) : 0;
-
             const chartDiv = document.getElementById('analytics-chart');
-            chartDiv.innerHTML = `
-                <div><div class="flex justify-between text-sm mb-1"><span class="font-medium text-green-600">Completed (${completed})</span><span>${completedPercent}%</span></div><div class="w-full bg-gray-200 rounded-full h-3"><div class="bg-green-500 h-3 rounded-full" style="width: ${completedPercent}%"></div></div></div>
-                <div><div class="flex justify-between text-sm mb-1"><span class="font-medium text-orange-600">Pending/Ongoing (${pending})</span><span>${pendingPercent}%</span></div><div class="w-full bg-gray-200 rounded-full h-3"><div class="bg-orange-500 h-3 rounded-full" style="width: ${pendingPercent}%"></div></div></div>`;
+            chartDiv.innerHTML = `<div><div class="flex justify-between text-sm mb-1"><span class="font-medium text-green-600">Completed (${completed})</span><span>${completedPercent}%</span></div><div class="w-full bg-gray-200 rounded-full h-3"><div class="bg-green-500 h-3 rounded-full" style="width: ${completedPercent}%"></div></div></div><div><div class="flex justify-between text-sm mb-1"><span class="font-medium text-orange-600">Pending/Ongoing (${pending})</span><span>${pendingPercent}%</span></div><div class="w-full bg-gray-200 rounded-full h-3"><div class="bg-orange-500 h-3 rounded-full" style="width: ${pendingPercent}%"></div></div></div>`;
             document.getElementById('analytics-title').textContent = `${executiveId ? executiveName : 'Overall'} Status for ${month ? new Date(month + '-02').toLocaleString('default', { month: 'long', year: 'numeric' }) : 'All Time'}`;
         }
-
         async function populateAnalyticsFilters() {
             const { data: execs, error: execsError } = await sb.from('users').select('id, username').eq('role', 'executive');
             if(execsError) return showError('Could not load executives.');
@@ -1437,7 +1268,6 @@
                 opt.textContent = e.username;
                 execFilter.appendChild(opt);
             });
-
             const { data: reports, error: reportsError } = await sb.from('reports').select('created_at');
             if(reportsError) return showError('Could not load report dates.');
             const monthFilter = document.getElementById('analytics-month-filter');
@@ -1451,36 +1281,18 @@
             });
         }
         
-        // --- EXECUTIVE: JOB CARD ---
+        // --- JOB CARD & VEHICLE ---
         async function searchVehicle() {
             const rawVehicleNumber = document.getElementById('search-vehicle-number').value;
             const vehicleNumber = normalizeVehicleNumber(rawVehicleNumber);
             hideAllSections();
-            if (!vehicleNumber) {
-                showError('Please enter a vehicle number.');
-                return;
-            }
-
-            const { data, error } = await sb
-                .from('vehicles')
-                .select(`
-                    id, vehicle_no, fuel_type, odometer, client_name, client_phone, vehicle_name, color, engine_no, chassis_no,
-                    vehicle_models ( brand, model )
-                `)
-                .eq('vehicle_no', vehicleNumber)
-                .single();
-            
-            const odometerWrapper = document.getElementById('odometer-display-wrapper');
-            const clientNameWrapper = document.getElementById('client-name-wrapper');
-            const clientPhoneWrapper = document.getElementById('client-phone-wrapper');
-
-
+            if (!vehicleNumber) return showError('Please enter a vehicle number.');
+            const { data, error } = await sb.from('vehicles').select(`*, vehicle_models ( brand, model )`).eq('vehicle_no', vehicleNumber).single();
             if (data) { 
                 currentVehicleId = data.id;
                 currentOdometer = data.odometer;
                 originalClientName = data.client_name;
                 originalClientPhone = data.client_phone;
-                
                 document.getElementById('detail-vehicle-number').textContent = data.vehicle_no;
                 document.getElementById('detail-brand').textContent = data.vehicle_models.brand;
                 document.getElementById('detail-model').textContent = data.vehicle_models.model;
@@ -1489,40 +1301,32 @@
                 document.getElementById('detail-color').textContent = data.color || 'N/A';
                 document.getElementById('detail-engine-no').textContent = data.engine_no || 'N/A';
                 document.getElementById('detail-chassis-no').textContent = data.chassis_no || 'N/A';
-
-                clientNameWrapper.innerHTML = `<input type="text" id="detail-client-name-input" class="form-input" value="${data.client_name || ''}">`;
-                clientPhoneWrapper.innerHTML = `<input type="tel" id="detail-client-phone-input" class="form-input" value="${data.client_phone || ''}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');">`;
-                odometerWrapper.innerHTML = `<input type="number" id="detail-odometer-input" class="form-input" value="${data.odometer || 0}">`;
-                
+                document.getElementById('client-name-wrapper').innerHTML = `<input type="text" id="detail-client-name-input" class="form-input" value="${data.client_name || ''}">`;
+                document.getElementById('client-phone-wrapper').innerHTML = `<input type="tel" id="detail-client-phone-input" class="form-input" value="${data.client_phone || ''}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');">`;
+                document.getElementById('odometer-display-wrapper').innerHTML = `<input type="number" id="detail-odometer-input" class="form-input" value="${data.odometer || 0}">`;
                 document.getElementById('detail-odometer-input').addEventListener('blur', checkOdometer);
-                
                 vehicleDetailsSection.classList.remove('hidden');
                 newComplaintSection.classList.remove('hidden');
-
                 setTimeout(resizeCanvas, 50);
-
             } else { 
                 currentVehicleId = null;
                 currentOdometer = 0;
-                clientNameWrapper.innerHTML = `<p id="detail-client-name" class="font-semibold"></p>`;
-                clientPhoneWrapper.innerHTML = `<p id="detail-client-phone" class="font-semibold"></p>`;
-                odometerWrapper.innerHTML = `<p id="detail-odometer" class="font-semibold"></p>`;
+                document.getElementById('client-name-wrapper').innerHTML = `<p id="detail-client-name" class="font-semibold"></p>`;
+                document.getElementById('client-phone-wrapper').innerHTML = `<p id="detail-client-phone" class="font-semibold"></p>`;
+                document.getElementById('odometer-display-wrapper').innerHTML = `<p id="detail-odometer" class="font-semibold"></p>`;
                 document.getElementById('new-vehicle-number').value = vehicleNumber;
                 populateExecutiveVehicleDropdowns();
                 createVehicleSection.classList.remove('hidden');
             }
         }
-        
         async function populateExecutiveVehicleDropdowns() {
             if (vehicleModelsCache.length === 0) { 
                 const { data, error } = await sb.from('vehicle_models').select('*');
                 if (error) return showError('Could not fetch vehicle models.');
                 vehicleModelsCache = data;
             }
-            
             const brandSelect = document.getElementById('new-vehicle-brand-exec');
             brandSelect.innerHTML = '<option value="">Select Brand</option>';
-            
             const uniqueBrands = [...new Set(vehicleModelsCache.map(item => item.brand))];
             uniqueBrands.forEach(brand => {
                 const opt = document.createElement('option');
@@ -1532,12 +1336,10 @@
             });
             populateModelDropdown();
         }
-
         function populateModelDropdown() {
             const brand = document.getElementById('new-vehicle-brand-exec').value;
             const modelSelect = document.getElementById('new-vehicle-model-exec');
             modelSelect.innerHTML = '<option value="">Select Model</option>';
-
             const modelsForBrand = vehicleModelsCache.filter(item => item.brand === brand);
             modelsForBrand.forEach(item => {
                 const opt = document.createElement('option');
@@ -1546,23 +1348,20 @@
                 modelSelect.appendChild(opt);
             });
         }
-
-	function checkOdometer() {
-        const newOdometerInput = document.getElementById('detail-odometer-input');
-        const warningSpan = document.getElementById('odometer-warning');
-        const newOdometerValue = parseInt(newOdometerInput.value);
-
-        if (newOdometerValue < currentOdometer) {
-            warningSpan.textContent = 'Reading is lower than last service!';
-            warningSpan.classList.remove('hidden');
-            newOdometerInput.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
-        } else {
-            warningSpan.textContent = '';
-            warningSpan.classList.add('hidden');
-            newOdometerInput.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+	    function checkOdometer() {
+            const newOdometerInput = document.getElementById('detail-odometer-input');
+            const warningSpan = document.getElementById('odometer-warning');
+            const newOdometerValue = parseInt(newOdometerInput.value);
+            if (newOdometerValue < currentOdometer) {
+                warningSpan.textContent = 'Reading is lower than last service!';
+                warningSpan.classList.remove('hidden');
+                newOdometerInput.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+            } else {
+                warningSpan.textContent = '';
+                warningSpan.classList.add('hidden');
+                newOdometerInput.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+            }
         }
-    }
-        
         async function createVehicle() {
             const newVehicle = {
                 vehicle_no: normalizeVehicleNumber(document.getElementById('new-vehicle-number').value),
@@ -1576,24 +1375,16 @@
                 client_name: document.getElementById('new-client-name').value.trim(),
                 client_phone: document.getElementById('new-client-phone').value.trim()
             };
-
-            if (!newVehicle.model_id || !newVehicle.fuel_type || !newVehicle.odometer || !newVehicle.client_name || !newVehicle.client_phone || !newVehicle.engine_no || !newVehicle.chassis_no) {
-                return showError('Please fill all mandatory vehicle details.');
-            }
-            if (!/^\d{10}$/.test(newVehicle.client_phone)) {
-                return showError('Please enter a valid 10-digit phone number.');
-            }
-
+            if (!newVehicle.model_id || !newVehicle.fuel_type || !newVehicle.odometer || !newVehicle.client_name || !newVehicle.client_phone || !newVehicle.engine_no || !newVehicle.chassis_no) return showError('Please fill all mandatory vehicle details.');
+            if (!/^\d{10}$/.test(newVehicle.client_phone)) return showError('Please enter a valid 10-digit phone number.');
             const { data, error } = await sb.from('vehicles').insert(newVehicle).select().single();
             if (error) return showError(`Failed to create vehicle: ${error.message}`);
-            
             currentVehicleId = data.id;
             document.getElementById('create-vehicle-form').reset();
             createVehicleSection.classList.add('hidden');
             showSuccessMessage('Vehicle created successfully!');
             searchVehicle();
         }
-
         function addComplaint() {
             const complaintInput = document.getElementById('complaint-input');
             const complaintText = complaintInput.value.trim();
@@ -1604,89 +1395,89 @@
             }
             complaintInput.focus();
         }
-
         function deleteComplaint(index) {
             currentComplaints.splice(index, 1);
             renderComplaints();
         }
-
         function renderComplaints() {
             const list = document.getElementById('complaints-list');
             list.innerHTML = '';
-
-            if (currentComplaints.length === 0) {
-                list.innerHTML = '<p class="text-sm text-gray-500">No complaints added yet.</p>';
-                return;
-            }
-
+            if (currentComplaints.length === 0) { list.innerHTML = '<p class="text-sm text-gray-500">No complaints added yet.</p>'; return; }
             currentComplaints.forEach((text, index) => {
                 const item = document.createElement('div');
                 item.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg text-sm';
-                item.innerHTML = `
-                    <p class="flex-1 mr-2">${text}</p>
-                    <button onclick="deleteComplaint(${index})" class="text-red-500 hover:text-red-700 shrink-0">
-                        <span class="material-symbols-outlined">delete</span>
-                    </button>
-                `;
+                item.innerHTML = `<p class="flex-1 mr-2">${text}</p><button onclick="deleteComplaint(${index})" class="text-red-500 hover:text-red-700 shrink-0"><span class="material-symbols-outlined">delete</span></button>`;
                 list.appendChild(item);
             });
         }
-        
 		async function saveComplaints() {
             addComplaint(); 
             if (currentComplaints.length === 0) return showError('Please add at least one complaint.');
             if (!currentVehicleId) return showError('No vehicle selected.');
+            if ((capturedPhotos.length > 0 || voiceNoteBlob) && !gapi.client.getToken()) {
+                showError('Google Drive access required for media upload. Please authorize on the Profile page.');
+                tokenClient.callback = async (resp) => {
+                    if (resp.error !== undefined) { showError('Authorization failed. Please try again.'); throw (resp); }
+                    updateAuthUI(true);
+                    showSuccessMessage('Google Drive authorized. Now saving...');
+                    await saveComplaints();
+                };
+                tokenClient.requestAccessToken({prompt: 'consent'});
+                return;
+            }
             const newOdometerInput = document.getElementById('detail-odometer-input');
             const serviceOdometer = newOdometerInput.value;
             const serviceClientName = document.getElementById('detail-client-name-input').value.trim();
             const serviceClientPhone = document.getElementById('detail-client-phone-input').value.trim();
             if (!/^\d{10}$/.test(serviceClientPhone)) return showError('Please enter a valid 10-digit phone number for the client.');
             if (!serviceClientName) return showError('Client name cannot be empty.');
-            const newReport = { vehicle_id: currentVehicleId, executive_id: currentUser.id, complaint: JSON.stringify(currentComplaints), status: 'Not Started', marks: JSON.stringify(damageMarks), odometer_reading: serviceOdometer, client_name: serviceClientName, client_phone: serviceClientPhone };
-            const { error: reportError } = await sb.from('reports').insert(newReport);
-            if(reportError) {
-                console.error("Error saving report:", reportError);
-                return showError(`Failed to save complaints: ${reportError.message}`);
+            showSuccessMessage('Saving report...');
+            const { data: reportData, error: reportError } = await sb.from('reports').insert({
+                vehicle_id: currentVehicleId, executive_id: currentUser.id, complaint: JSON.stringify(currentComplaints), status: 'Not Started', marks: JSON.stringify(damageMarks), odometer_reading: serviceOdometer, client_name: serviceClientName, client_phone: serviceClientPhone
+            }).select('id').single();
+            if(reportError) { console.error("Error saving report:", reportError); return showError(`Failed to save complaints: ${reportError.message}`); }
+            const reportId = reportData.id;
+            const vehicleNo = document.getElementById('detail-vehicle-number').textContent || `Vehicle-${currentVehicleId}`;
+            const jobFolderName = `${vehicleNo}_${reportId}`;
+            try {
+                if (capturedPhotos.length > 0 || voiceNoteBlob) {
+                    const folderId = await createDriveFolder(jobFolderName);
+                    const uploadPromises = [];
+                    capturedPhotos.forEach((photo, index) => uploadPromises.push(uploadFileToDrive(folderId, photo, `photo_${index + 1}.jpg`)));
+                    if (voiceNoteBlob) uploadPromises.push(uploadFileToDrive(folderId, voiceNoteBlob, 'voice_note.webm'));
+                    await Promise.all(uploadPromises);
+                    const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+                    const { error: updateError } = await sb.from('reports').update({ gdrive_folder_url: folderUrl }).eq('id', reportId);
+                    if (updateError) throw updateError;
+                    showSuccessMessage('Media uploaded successfully!');
+                }
+            } catch (driveError) {
+                console.error('Google Drive or DB Update Error:', driveError);
+                showError('Report saved, but media upload or linking failed.');
             }
             const updates = {};
             const newOdometer = parseInt(serviceOdometer);
             if (newOdometer > currentOdometer) updates.odometer = newOdometer;
-            updates.client_name = serviceClientName;
-            updates.client_phone = serviceClientPhone;
-
+            if (serviceClientName !== originalClientName) updates.client_name = serviceClientName;
+            if (serviceClientPhone !== originalClientPhone) updates.client_phone = serviceClientPhone;
             if (Object.keys(updates).length > 0) {
                 const { error: vehicleUpdateError } = await sb.from('vehicles').update(updates).eq('id', currentVehicleId);
-                 if(vehicleUpdateError) {
-                    console.error("Error updating vehicle details:", vehicleUpdateError);
-                    showError('Report saved, but failed to update vehicle details.');
-                }
+                if(vehicleUpdateError) { console.error("Error updating vehicle details:", vehicleUpdateError); showError('Report saved, but failed to update vehicle details.'); }
             }
-            showSuccessMessage('Report saved successfully!');
+            showSuccessMessage('Job Card saved successfully!');
             resetJobCardState();
         }
         
+        // --- UPDATES, APPROVALS, & WHATSAPP ---
         async function handleReportUpdateSearch() {
             const input = document.getElementById('update-search-input').value.trim().toUpperCase();
             predictionList.innerHTML = '';
-            if (!input) {
-                predictionList.classList.add('hidden');
-                return;
-            }
-
+            if (!input) { predictionList.classList.add('hidden'); return; }
             const { data: vehiclesData } = await sb.from('vehicles').select('id').ilike('vehicle_no', `%${input}%`);
-            if (!vehiclesData || vehiclesData.length === 0) {
-                predictionList.classList.add('hidden');
-                return;
-            }
-
+            if (!vehiclesData || vehiclesData.length === 0) { predictionList.classList.add('hidden'); return; }
             const vehicleIds = vehiclesData.map(v => v.id);
-
             const { data } = await sb.from('reports').select(`id, complaint, vehicles!inner(vehicle_no)`).in('vehicle_id', vehicleIds).neq('status', 'Completed').limit(5);
-            if (!data || data.length === 0) {
-                predictionList.classList.add('hidden');
-                return;
-            }
-            
+            if (!data || data.length === 0) { predictionList.classList.add('hidden'); return; }
             data.forEach(report => {
                 const item = document.createElement('div');
                 item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
@@ -1696,47 +1487,35 @@
             });
             predictionList.classList.remove('hidden');
         }
-
-        function selectReportForUpdate(report) {
-            currentReportId = report.id;
-            document.getElementById('update-search-input').value = report.vehicles.vehicle_no;
+        async function selectReportForUpdate(reportStub) {
+            currentReportId = reportStub.id;
+            document.getElementById('update-search-input').value = reportStub.vehicles.vehicle_no;
             predictionList.classList.add('hidden');
-            document.getElementById('update-detail-number').textContent = report.vehicles.vehicle_no;
+            document.getElementById('update-detail-number').textContent = reportStub.vehicles.vehicle_no;
+            const { data: fullReport, error } = await sb.from('reports').select('complaint, suggested, approved, materials_required, expected_delivery').eq('id', currentReportId).single();
+            if (error) { showError('Could not fetch full report details.'); return; }
             updateDetailsSection.classList.remove('hidden');
             updateFormSection.classList.remove('hidden');
-
             try {
-                originalComplaintsForUpdate = JSON.parse(report.complaint || '[]');
-            } catch (e) {
-                console.error("Could not parse complaints:", e);
-                originalComplaintsForUpdate = [];
-            }
-            newSuggestions = []; 
+                originalComplaintsForUpdate = JSON.parse(fullReport.complaint || '[]');
+                const suggested = JSON.parse(fullReport.suggested || '[]');
+                newSuggestions = suggested.filter(s => !originalComplaintsForUpdate.includes(s));
+                currentMaterials = JSON.parse(fullReport.materials_required || '[]');
+            } catch (e) { console.error("Could not parse data:", e); originalComplaintsForUpdate = []; newSuggestions = []; currentMaterials = []; }
             
-            const complaintDisplayList = document.getElementById('original-complaints-list');
-            const complaintSummaryP = document.getElementById('update-detail-complaint');
-            const complaintDisplayDiv = document.getElementById('original-complaints-display');
-            complaintDisplayList.innerHTML = '';
-            
-            if (originalComplaintsForUpdate.length > 0) {
-                complaintSummaryP.textContent = `${originalComplaintsForUpdate.length} issue(s) registered.`;
-                originalComplaintsForUpdate.forEach(complaint => {
-                    const li = document.createElement('li');
-                    li.textContent = complaint;
-                    complaintDisplayList.appendChild(li);
-                });
-                complaintDisplayDiv.classList.remove('hidden');
-            } else {
-                 complaintSummaryP.textContent = 'No complaints registered.';
-                 complaintDisplayDiv.classList.add('hidden');
-            }
+            document.getElementById('update-detail-complaint').textContent = `${originalComplaintsForUpdate.length} issue(s) registered.`;
 
             renderSuggestions();
-
+            renderMaterials();
+            const approvedItems = JSON.parse(fullReport.approved || '[]');
+            document.querySelectorAll('#customer-approval-list input[type="checkbox"]').forEach(checkbox => {
+                const labelText = checkbox.nextElementSibling.textContent;
+                if (approvedItems.includes(labelText)) checkbox.checked = true;
+            });
+            document.getElementById('delivery-date').value = fullReport.expected_delivery || '';
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('delivery-date').setAttribute('min', today);
         }
-        
         function addSuggestion() {
             const input = document.getElementById('suggestion-input');
             const suggestionText = input.value.trim();
@@ -1750,449 +1529,172 @@
             newSuggestions.splice(index, 1);
             renderSuggestions();
         }
-
         function renderSuggestions() {
             const executiveList = document.getElementById('executive-suggestions-list');
             const customerList = document.getElementById('customer-approval-list');
             executiveList.innerHTML = '';
             customerList.innerHTML = '';
-
-            // Part 1: Render original complaints as selectable items for approval
-            if (originalComplaintsForUpdate.length > 0) {
-                originalComplaintsForUpdate.forEach(text => {
-                    const customerItem = document.createElement('label');
-                    customerItem.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100';
-                    customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="flex-1">${text}</span>`;
-                    customerList.appendChild(customerItem);
-                });
-            }
-
-            // Part 2: Render NEW suggestions from the executive
+            const allSuggestionsForApproval = [...originalComplaintsForUpdate, ...newSuggestions];
             if (newSuggestions.length > 0) {
                 newSuggestions.forEach((text, index) => {
-                    // Add to the executive's list WITH a delete button
                     const execItem = document.createElement('div');
                     execItem.className = 'flex items-center justify-between bg-blue-50 p-2 rounded-lg text-sm text-blue-800';
-                    execItem.innerHTML = `
-                        <p class="flex-1 mr-2">${text}</p>
-                        <button type="button" onclick="deleteSuggestion(${index})" class="text-red-500 hover:text-red-700 shrink-0">
-                            <span class="material-symbols-outlined">delete</span>
-                        </button>
-                    `;
+                    execItem.innerHTML = `<p class="flex-1 mr-2">${text}</p><button type="button" onclick="deleteSuggestion(${index})" class="text-red-500 hover:text-red-700 shrink-0"><span class="material-symbols-outlined">delete</span></button>`;
                     executiveList.appendChild(execItem);
-
-                    // Add as a selectable checkbox to the customer's approval list
+                });
+            } else executiveList.innerHTML = '<p class="text-sm text-gray-500">No new suggestions added yet.</p>';
+            if (allSuggestionsForApproval.length > 0) {
+                allSuggestionsForApproval.forEach(text => {
                     const customerItem = document.createElement('label');
                     customerItem.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100';
                     customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="flex-1">${text}</span>`;
                     customerList.appendChild(customerItem);
                 });
-            }
-
-            // Handle empty state for customer approval list
-            if (customerList.innerHTML === '') {
-                customerList.innerHTML = '<p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p>';
+            } else customerList.innerHTML = '<p class="text-sm text-gray-500">No complaints registered for this vehicle.</p>';
+        }
+        function addMaterial() {
+            const input = document.getElementById('material-input');
+            const materialText = input.value.trim();
+            if (materialText) {
+                currentMaterials.push(materialText);
+                input.value = '';
+                renderMaterials();
             }
         }
-
-        async function saveVehicleUpdate() {
-            if(!currentReportId) return showError('No report selected for update.');
-
-            const deliveryDate = document.getElementById('delivery-date').value;
-            if(!deliveryDate) return showError('Please select an expected delivery date.');
-
-            const approvedItems = [];
-            document.querySelectorAll('#customer-approval-list input[type="checkbox"]:checked').forEach(checkbox => {
-                approvedItems.push(checkbox.nextElementSibling.textContent);
+        function deleteMaterial(index) {
+            currentMaterials.splice(index, 1);
+            renderMaterials();
+        }
+        function renderMaterials() {
+            const list = document.getElementById('materials-list');
+            list.innerHTML = '';
+            if (currentMaterials.length === 0) { list.innerHTML = '<p class="text-sm text-gray-500">No materials added yet.</p>'; return; }
+            currentMaterials.forEach((text, index) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between bg-gray-50 p-2 rounded-lg text-sm';
+                item.innerHTML = `<p class="flex-1 mr-2">${text}</p><button type="button" onclick="deleteMaterial(${index})" class="text-red-500 hover:text-red-700 shrink-0"><span class="material-symbols-outlined">delete</span></button>`;
+                list.appendChild(item);
             });
-
+        }
+        async function saveVehicleUpdate(resetAfterSave = true) {
+            if(!currentReportId) return showError('No report selected for update.');
+            const deliveryDate = document.getElementById('delivery-date').value;
+            const approvedItems = [];
+            document.querySelectorAll('#customer-approval-list input[type="checkbox"]:checked').forEach(checkbox => { approvedItems.push(checkbox.nextElementSibling.textContent); });
             const allSuggestions = [...originalComplaintsForUpdate, ...newSuggestions];
-
             const updateData = {
                 suggested: JSON.stringify(allSuggestions),
                 approved: JSON.stringify(approvedItems),
-                expected_delivery: deliveryDate,
-                status: 'Ongoing'
+                expected_delivery: deliveryDate || null,
+                status: 'Ongoing',
+                materials_required: JSON.stringify(currentMaterials)
             };
-
             const { error } = await sb.from('reports').update(updateData).eq('id', currentReportId);
-            if(error) return showError(`Failed to save update: ${error.message}`);
-
-            showSuccessMessage('Update saved successfully!');
-            resetVehicleUpdateScreen();
+            if(error) { console.error("Update Error:", error); return showError(`Failed to save update: ${error.message}`); }
+            if (resetAfterSave) {
+                showSuccessMessage('Update saved successfully!');
+                resetVehicleUpdateScreen();
+            }
         }
-        
-        // --- EXECUTIVE: DUE DATES ---
+        async function sendApprovalLink() {
+            if (!currentReportId) return showError('Please save the current selections before sending a link.');
+            await saveVehicleUpdate(false); 
+            const { data: reportData, error: reportError } = await sb.from('reports').select('client_phone, vehicles(client_phone)').eq('id', currentReportId).single();
+            if (reportError) { console.error("Error fetching report details:", reportError); return showError("Could not fetch report details to send the link."); }
+            const clientPhone = reportData.client_phone || reportData.vehicles?.client_phone;
+            if (!clientPhone) return showError("A client phone number could not be found for this report or vehicle.");
+            const yourVercelLink = "https://auto-fix-index.vercel.app/"; // <-- REPLACE THIS WITH YOUR ACTUAL VERCEL DEPLOYMENT LINK
+            const approvalUrl = `${yourVercelLink}?report_id=${currentReportId}`;
+            let messageText = `Dear Customer,\n\nPlease review and approve the suggested repairs for your vehicle using the link below:\n${approvalUrl}\n\nThank you,\nAutoFix Service`;
+            const encodedText = encodeURIComponent(messageText);
+            const whatsappUrl = `https://wa.me/91${clientPhone}?text=${encodedText}`;
+            window.open(whatsappUrl, '_blank');
+            showSuccessMessage("Opening WhatsApp...");
+        }
+
+        // --- DUE DATES & PROFILE ---
         async function populateDueDateScreen() {
             const listContainer = document.getElementById('due-date-list');
             const noDatesMsg = document.getElementById('no-due-dates-message');
             listContainer.innerHTML = '';
-
-            const { data, error } = await sb.from('reports')
-                .select(`id, complaint, expected_delivery, status, vehicles!inner(vehicle_no)`)
-                .eq('executive_id', currentUser.id)
-                .in('status', ['Not Started', 'Ongoing'])
-                .order('expected_delivery', { ascending: true, nullsfirst: false });
-            
+            const { data, error } = await sb.from('reports').select(`id, complaint, expected_delivery, status, vehicles!inner(vehicle_no)`).eq('executive_id', currentUser.id).in('status', ['Not Started', 'Ongoing']).order('expected_delivery', { ascending: true, nullsfirst: false });
             if(error) return showError('Could not fetch due dates.');
-
-            if (!data || data.length === 0) {
-                noDatesMsg.classList.remove('hidden');
-                return;
-            }
+            if (!data || data.length === 0) { noDatesMsg.classList.remove('hidden'); return; }
             noDatesMsg.classList.add('hidden');
-
             const groupedJobs = {};
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
             data.forEach(job => {
                 if (!job.expected_delivery) return; 
-
                 const dueDate = new Date(job.expected_delivery + 'T00:00:00Z');
-                let groupKey = '';
-                 let sortKey = job.expected_delivery;
-
-                if (dueDate < today) {
-                    groupKey = 'Overdue';
-                    sortKey = `1-${job.expected_delivery}`;
-                } else if (dueDate.getTime() === today.getTime()) {
-                    groupKey = 'Today';
-                    sortKey = `2-${job.expected_delivery}`;
-                } else if (dueDate.getTime() === tomorrow.getTime()) {
-                    groupKey = 'Tomorrow';
-                     sortKey = `3-${job.expected_delivery}`;
-                } else {
-                    groupKey = dueDate.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
-                    sortKey = `4-${job.expected_delivery}`;
-                }
-
-                if (!groupedJobs[groupKey]) {
-                    groupedJobs[groupKey] = { jobs: [], sortKey: sortKey };
-                }
+                let groupKey = '', sortKey = job.expected_delivery;
+                if (dueDate < today) { groupKey = 'Overdue'; sortKey = `1-${job.expected_delivery}`; }
+                else if (dueDate.getTime() === today.getTime()) { groupKey = 'Today'; sortKey = `2-${job.expected_delivery}`; }
+                else if (dueDate.getTime() === tomorrow.getTime()) { groupKey = 'Tomorrow'; sortKey = `3-${job.expected_delivery}`; }
+                else { groupKey = dueDate.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }); sortKey = `4-${job.expected_delivery}`; }
+                if (!groupedJobs[groupKey]) groupedJobs[groupKey] = { jobs: [], sortKey: sortKey };
                 groupedJobs[groupKey].jobs.push(job);
             });
-
-            const sortedGroupKeys = Object.keys(groupedJobs).sort((a, b) => {
-                return groupedJobs[a].sortKey.localeCompare(groupedJobs[b].sortKey);
-            });
-
+            const sortedGroupKeys = Object.keys(groupedJobs).sort((a, b) => groupedJobs[a].sortKey.localeCompare(groupedJobs[b].sortKey));
             sortedGroupKeys.forEach(groupKey => {
                 const group = groupedJobs[groupKey];
                  if (group.jobs.length > 0) {
                     const header = document.createElement('div');
                     const isImmediate = groupKey === 'Overdue' || groupKey === 'Today';
-                    
                     let headerColor = isImmediate ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-700';
-                    
                     header.className = `py-2 px-4 ${headerColor} rounded-lg text-sm font-bold sticky top-[64px] z-10`; 
                     header.textContent = `${groupKey} (${group.jobs.length})`;
                     listContainer.appendChild(header);
-                    
                     const sortedJobs = group.jobs.sort((a, b) => a.vehicles.vehicle_no.localeCompare(b.vehicles.vehicle_no));
-
                     sortedJobs.forEach(job => {
                         const itemContainer = document.createElement('div');
                         const itemBorderClass = isImmediate ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-transparent';
                         itemContainer.className = `due-date-item bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden ${itemBorderClass}`;
-                        
                         const statusOptions = ['Not Started', 'Ongoing', 'Completed'];
                         let optionsHtml = statusOptions.map(opt => `<option value="${opt}" ${job.status === opt ? 'selected' : ''}>${opt}</option>`).join('');
-
-                        itemContainer.innerHTML = `
-                            <div class="due-date-header p-4 flex justify-between items-center cursor-pointer" onclick="toggleDueDateItem(this.parentElement)">
-                                <div>
-                                    <p class="font-bold text-gray-800">${job.vehicles.vehicle_no}</p>
-                                    <p class="text-sm text-gray-500">${job.status}</p>
-                                </div>
-                                <span class="material-symbols-outlined transition-transform duration-300">expand_more</span>
-                            </div>
-                            <div class="due-date-details">
-                                <div class="p-4 border-t border-gray-200">
-                                    <p class="text-sm text-gray-600 mb-4"><strong>Complaint:</strong> ${formatArrayCell(job.complaint)}</p>
-                                    <div class="flex items-center gap-3">
-                                        <label class="text-sm font-medium text-gray-600 shrink-0">Update Status:</label>
-                                        <select onchange="updateJobStatus(${job.id}, this.value, '${job.vehicles.vehicle_no}')" class="form-input text-sm !py-1.5 !px-2 w-full">${optionsHtml}</select>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+                        itemContainer.innerHTML = `<div class="due-date-header p-4 flex justify-between items-center cursor-pointer" onclick="toggleDueDateItem(this.parentElement)"><div><p class="font-bold text-gray-800">${job.vehicles.vehicle_no}</p><p class="text-sm text-gray-500">${job.status}</p></div><span class="material-symbols-outlined transition-transform duration-300">expand_more</span></div><div class="due-date-details"><div class="p-4 border-t border-gray-200"><p class="text-sm text-gray-600 mb-4"><strong>Complaint:</strong> ${formatArrayCell(job.complaint)}</p><div class="flex items-center gap-3"><label class="text-sm font-medium text-gray-600 shrink-0">Update Status:</label><select onchange="updateJobStatus(${job.id}, this.value, '${job.vehicles.vehicle_no}')" class="form-input text-sm !py-1.5 !px-2 w-full">${optionsHtml}</select></div></div></div>`;
                         listContainer.appendChild(itemContainer);
                     });
                 }
             });
         }
-        
         function toggleDueDateItem(element) {
             const isExpanded = element.classList.contains('expanded');
-            
-            document.querySelectorAll('.due-date-item.expanded').forEach(item => {
-                if (item !== element) {
-                    item.classList.remove('expanded');
-                }
-            });
-
-            if (isExpanded) {
-                element.classList.remove('expanded');
-            } else {
-                element.classList.add('expanded');
-            }
+            document.querySelectorAll('.due-date-item.expanded').forEach(item => { if (item !== element) item.classList.remove('expanded'); });
+            if (isExpanded) element.classList.remove('expanded');
+            else element.classList.add('expanded');
         }
-        
         async function updateJobStatus(id, newStatus, vehicleNo) {
             const { error } = await sb.from('reports').update({ status: newStatus }).eq('id', id);
             if(error) return showError('Failed to update status.');
-
             showSuccessMessage(`Status for ${vehicleNo} updated to ${newStatus}`);
             setTimeout(populateDueDateScreen, 500); 
         }
-        
         async function resetPassword() {
             const currentPassword = document.getElementById('current-password').value;
             const newPassword = document.getElementById('new-password').value;
             const confirmNewPassword = document.getElementById('confirm-new-password').value;
-
             if (newPassword !== confirmNewPassword) return showError('New passwords do not match.');
             if (currentUser.password !== currentPassword) return showError('Incorrect current password.');
-
             const { error } = await sb.from('users').update({ password: newPassword }).eq('id', currentUser.id);
             if (error) return showError('Could not reset password.');
-
             showSuccessMessage('Password reset successfully!');
             currentUser.password = newPassword; 
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
             document.querySelector('#profile-screen form').reset();
         }
 
-        function confirmDeletion(type, id, role) {
-            const modal = document.getElementById('delete-confirmation-modal');
-            const text = document.getElementById('delete-modal-text');
-            const button = document.getElementById('confirm-delete-button');
-            
-            let message = '';
-            if (type === 'user') message = `Are you sure you want to delete this ${role}? This action cannot be undone.`;
-            else if (type === 'vehicle_model') message = `Are you sure you want to delete this vehicle model? This may affect existing records.`;
-            
-            text.textContent = message;
-            button.onclick = () => executeDelete(type, id, role);
-            showModal('delete-confirmation-modal');
-        }
-
-        async function executeDelete(type, id, role) {
-            let error;
-            if (type === 'user') {
-                ({ error } = await sb.from('users').delete().eq('id', id));
-            } else if (type === 'vehicle_model') {
-                ({ error } = await sb.from('vehicle_models').delete().eq('id', id));
-            }
-
-            hideModal('delete-confirmation-modal');
-            if(error) return showError(`Deletion failed: ${error.message}`);
-
-            showSuccessMessage('Item deleted successfully.');
-            if (type === 'user') renderUserList(role);
-            if (type === 'vehicle_model') renderVehicleModelList();
-        }
-
-        const formatArrayCell = (jsonString) => {
-            if (!jsonString || jsonString === '[]') return 'N/A';
-            try {
-                const arr = JSON.parse(jsonString);
-                return Array.isArray(arr) && arr.length > 0 ? arr.join(', ') : 'N/A';
-            } catch (e) {
-                return jsonString; 
-            }
-        };
-
-        function hideAllSections() {
-            vehicleDetailsSection.classList.add('hidden');
-            createVehicleSection.classList.add('hidden');
-            newComplaintSection.classList.add('hidden');
-            searchError.classList.add('hidden');
-        }
-
-        function resetJobCardState() {
-            hideAllSections();
-            document.getElementById('search-vehicle-number').value = '';
-            document.getElementById('create-vehicle-form').reset();
-            currentVehicleId = null;
-            currentComplaints = [];
-            renderComplaints();
-            document.getElementById('client-name-wrapper').innerHTML = `<p id="detail-client-name" class="font-semibold"></p>`;
-            document.getElementById('client-phone-wrapper').innerHTML = `<p id="detail-client-phone" class="font-semibold"></p>`;
-            document.getElementById('odometer-display-wrapper').innerHTML = `<p id="detail-odometer" class="font-semibold"></p>`;
-            clearDamageCanvas();
-            // Reset media state
-            capturedPhotos = [];
-            voiceNoteBlob = null;
-            document.getElementById('photo-previews').innerHTML = '';
-            document.getElementById('audio-playback').innerHTML = '';
-            document.getElementById('recording-status').textContent = '';
-        }
-
-        function resetVehicleUpdateScreen() {
-            document.getElementById('update-search-input').value = '';
-            predictionList.classList.add('hidden');
-            updateDetailsSection.classList.add('hidden');
-            updateFormSection.classList.add('hidden');
-            document.getElementById('delivery-date').value = '';
-            newSuggestions = [];
-            currentReportId = null;
-            renderSuggestions();
-        }
-
-        // --- Damage Marking Functions ---
-        function resizeCanvas() {
-            if (!carImage || !damageCanvas || !checkCanvas) return;
-
-            const redraw = () => {
-                const w = carImage.clientWidth;
-                const h = carImage.clientHeight;
-                if (w === 0 || h === 0) return;
-
-                damageCanvas.width = w;
-                damageCanvas.height = h;
-                checkCanvas.width = w;
-                checkCanvas.height = h;
-
-                checkCtx.drawImage(carImage, 0, 0, w, h);
-                redrawDamageMarks(damageCanvas, damageMarks);
-            };
-
-            requestAnimationFrame(redraw);
-        }
-
-        function undoLastMark() {
-            if (damageMarks.length > 0) {
-                damageMarks.pop();
-                redrawDamageMarks(damageCanvas, damageMarks);
-            }
-        }
-
-        function clearDamageCanvas() {
-            if (damageCtx) {
-                damageCtx.clearRect(0, 0, damageCanvas.width, damageCanvas.height);
-            }
-            damageMarks = [];
-        }
-
-        function redrawDamageMarks(canvas, marks) {
-            const ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (!marks) return;
-
-            marks.forEach(mark => {
-                ctx.fillStyle = "red";
-                ctx.beginPath();
-                ctx.arc(mark.x, mark.y, 5, 0, Math.PI * 2);
-                ctx.fill();
-            });
-        }
-        
-        function openMarksModal(marks) {
-            const marksArray = typeof marks === 'string' ? JSON.parse(marks) : marks;
-            
-            const modal = document.getElementById("marks-modal");
-            modal.classList.remove("modal-hidden");
-            const modalCanvas = document.getElementById("modalCanvas");
-            const modalImage = document.getElementById("modalCarImage");
-
-            const drawOnModal = () => {
-                modalCanvas.width = modalImage.clientWidth;
-                modalCanvas.height = modalImage.clientHeight;
-                redrawDamageMarks(modalCanvas, marksArray);
-            };
-
-            if (modalImage.complete) {
-                drawOnModal();
-            } else {
-                modalImage.onload = drawOnModal;
-            }
-        }
-
-        function closeMarksModal() {
-            document.getElementById("marks-modal").classList.add("modal-hidden");
-        }
-        
-        function showScreen(screenId) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(screenId).classList.add('active-screen'); }
-        
-        function showAdminScreen(screenId) {
-            document.querySelectorAll('#admin-screens .admin-screen').forEach(s => s.style.display = 'none');
-            document.getElementById(screenId).style.display = 'block';
-            
-            if (screenId === 'admin-vehicle-management-screen') renderVehicleModelList();
-            if (screenId === 'admin-reports-screen') fetchAndPopulateReports(true);
-            if (screenId === 'admin-analytics-screen') { populateAnalyticsFilters(); renderAnalytics(); }
-            if (screenId === 'admin-executive-management-screen') renderUserList('executive');
-            if (screenId === 'admin-admin-management-screen') renderUserList('admin');
-            
-            showScreen('admin-screens');
-        }
-
-        function showExecutiveScreen(screenId) {
-            document.querySelectorAll('#executive-screens .executive-screen').forEach(s => s.style.display = 'none');
-            document.getElementById(screenId).style.display = 'block';
-            setActiveNav(screenId);
-            
-            if (screenId === 'report-screen') fetchAndPopulateReports(false);
-            if (screenId === 'due-date-screen') populateDueDateScreen();
-            if (screenId === 'job-card-screen') {
-                resetJobCardState();
-            }
-            
-            showScreen('executive-screens');
-        }
-
-        function setActiveNav(targetId) {
-            const headerTitle = document.getElementById('executive-header-title');
-            document.querySelectorAll('.nav-item').forEach(item => {
-                const isActive = item.dataset.target === targetId;
-                item.classList.toggle('active', isActive);
-                if (isActive) {
-                    headerTitle.textContent = item.querySelector('span:last-child').textContent;
-                }
-            });
-        }
-        
-        function showModal(id) { document.getElementById(id)?.classList.remove('modal-hidden'); }
-        function hideModal(id) { document.getElementById(id)?.classList.add('modal-hidden'); }
-        
-        function showSuccessMessage(message) {
-            const el = document.getElementById('success-message');
-            document.getElementById('success-text').textContent = message;
-            el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 3000);
-        }
-
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            document.getElementById('error-text').textContent = message;
-            el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 4000);
-        }
-
-        // --- Google Drive API Functions ---
-        
+        // --- GOOGLE DRIVE ---
         async function initializeGapiClient() {
-            await gapi.client.init({
-                apiKey: API_KEY,
-                discoveryDocs: DISCOVERY_DOCS,
-            });
+            await gapi.client.init({ apiKey: API_KEY, discoveryDocs: DISCOVERY_DOCS });
             gapiInited = true;
             checkInitialAuth();
         }
-
         function checkInitialAuth() {
-            // This function is called when GAPI and GIS libs are loaded, and after login.
-            // It ensures we check for an existing token once everything is ready.
             if (gapiInited && gisInited && sessionStorage.getItem('currentUser')) {
-                // The token might be in the gapi client from a previous session
                 updateAuthUI(gapi.client.getToken() !== null);
             }
         }
-        
         function updateAuthUI(isSignedIn) {
             const authButton = document.getElementById('auth-button');
             const signOutButton = document.getElementById('signout-button');
@@ -2208,12 +1710,8 @@
                 }
             }
         }
-
         function handleAuthClick() {
-            if (gapi.client.getToken() === null) {
-                // Prompt the user for consent if no token is present
-                tokenClient.requestAccessToken({prompt: 'consent'});
-            }
+            if (gapi.client.getToken() === null) tokenClient.requestAccessToken({prompt: 'consent'});
         }
         function handleSignoutClick() {
             const token = gapi.client.getToken();
@@ -2225,26 +1723,15 @@
             }
         }
         async function createDriveFolder(folderName) {
-            const fileMetadata = {
-                'name': folderName,
-                'mimeType': 'application/vnd.google-apps.folder',
-                'parents': [PARENT_FOLDER_ID]
-            };
-            const response = await gapi.client.drive.files.create({
-                resource: fileMetadata,
-                fields: 'id'
-            });
+            const fileMetadata = { 'name': folderName, 'mimeType': 'application/vnd.google-apps.folder', 'parents': [PARENT_FOLDER_ID] };
+            const response = await gapi.client.drive.files.create({ resource: fileMetadata, fields: 'id' });
             return response.result.id;
         }
         async function uploadFileToDrive(folderId, file, fileName) {
-            const metadata = {
-                name: fileName,
-                parents: [folderId]
-            };
+            const metadata = { name: fileName, parents: [folderId] };
             const formData = new FormData();
             formData.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
             formData.append('file', file);
-
             const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
                 method: 'POST',
                 headers: new Headers({'Authorization': 'Bearer ' + gapi.client.getToken().access_token}),
@@ -2252,64 +1739,287 @@
             });
             return response.json();
         }
-
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedUser = sessionStorage.getItem('currentUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                if (currentUser.role === 'admin') {
-                    showAdminScreen('admin-dashboard-screen');
-                } else if (currentUser.role === 'executive') {
-                    document.getElementById('profile-username').textContent = currentUser.username;
-                    document.getElementById('profile-role').textContent = currentUser.role;
-                    showExecutiveScreen('job-card-screen');
-                }
+        
+        // --- CUSTOMER PORTAL ---
+        async function initializeCustomerView(reportId) {
+            showScreen('customer-approval-screen');
+            currentReportId = reportId;
+            const { data, error } = await sb.from('reports').select(`suggested, approved, customer_feedback_text, vehicles!inner(vehicle_no, vehicle_models!inner(brand, model), vehicle_name)`).eq('id', reportId).single();
+            if (error || !data) {
+                document.getElementById('customer-loading').innerHTML = `<p class="text-lg text-red-600">Error: Could not load report details. The link may be invalid.</p>`;
+                return;
             }
-
-            carImage = document.getElementById("carImage");
-            damageCanvas = document.getElementById("damageCanvas");
-            checkCanvas = document.getElementById("checkCanvas");
-
-            if (carImage && damageCanvas && checkCanvas) {
-                damageCtx = damageCanvas.getContext("2d");
-                checkCtx = checkCanvas.getContext("2d");
-
-                carImage.onload = resizeCanvas;
-                window.addEventListener("resize", resizeCanvas);
-
-                damageCanvas.addEventListener("click", (e) => {
-                    if (!checkCtx) return;
-
-                    const rect = damageCanvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-
-                    const pixel = checkCtx.getImageData(x, y, 1, 1).data;
-                    const alpha = pixel[3];
-
-                    if (alpha > 0) {
-                        damageCtx.fillStyle = "red";
-                        damageCtx.beginPath();
-                        damageCtx.arc(x, y, 5, 0, Math.PI * 2);
-                        damageCtx.fill();
-
-                        damageMarks.push({ x, y });
-                    }
+            document.getElementById('cust-vehicle-no').textContent = data.vehicles.vehicle_no;
+            document.getElementById('cust-vehicle-name').textContent = data.vehicles.vehicle_name || `${data.vehicles.vehicle_models.brand} ${data.vehicles.vehicle_models.model}`;
+            const suggestions = JSON.parse(data.suggested || '[]');
+            const alreadyApproved = JSON.parse(data.approved || '[]');
+            const approvalList = document.getElementById('cust-approval-list');
+            approvalList.innerHTML = '';
+            if (suggestions.length > 0) {
+                suggestions.forEach(item => {
+                    const isChecked = alreadyApproved.includes(item);
+                    const label = document.createElement('label');
+                    label.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors';
+                    label.innerHTML = `<input type="checkbox" class="h-6 w-6 rounded-md border-gray-300 text-blue-600 focus:ring-blue-500" ${isChecked ? 'checked' : ''}><span class="flex-1 font-medium text-gray-800">${item}</span>`;
+                    approvalList.appendChild(label);
                 });
-            }
-        });
-		
-        function printJobCardById(reportId) {
-            const reportData = reportsDataStore[reportId];
-            if (reportData) {
-                printJobCard(reportData);
+            } else approvalList.innerHTML = '<p class="text-gray-600">No specific repairs were suggested for approval at this time.</p>';
+            document.getElementById('customer-feedback-text').value = data.customer_feedback_text || '';
+            document.getElementById('customer-loading').classList.add('hidden');
+            document.getElementById('customer-approval-content').classList.remove('hidden');
+        }
+        async function toggleRecording() {
+            const recordBtn = document.getElementById('cust-record-btn');
+            const recordBtnText = document.getElementById('cust-record-btn-text');
+            const statusEl = document.getElementById('cust-recording-status');
+            const playbackEl = document.getElementById('cust-audio-playback');
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+                recordBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                recordBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                recordBtnText.textContent = 'Start Recording';
+                statusEl.textContent = 'Recording stopped.';
             } else {
-                console.error(`Report data not found for ID: ${reportId}`);
-                showError("Could not find report data to print.");
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert('Audio recording is not supported in your browser.'); return; }
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    recordedAudioBlob = null;
+                    playbackEl.src = '';
+                    playbackEl.classList.add('hidden');
+                    mediaRecorder.ondataavailable = event => { audioChunks.push(event.data); };
+                    mediaRecorder.onstop = () => {
+                        recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+                        const audioUrl = URL.createObjectURL(recordedAudioBlob);
+                        playbackEl.src = audioUrl;
+                        playbackEl.classList.remove('hidden');
+                        recordBtn.classList.add('hidden');
+                    };
+                    mediaRecorder.start();
+                    recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    recordBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                    recordBtnText.textContent = 'Stop Recording';
+                    statusEl.textContent = 'Recording in progress...';
+                } catch (err) { console.error("Audio recording error:", err); alert("Could not start recording. Please ensure microphone permissions are granted."); }
             }
         }
+        async function submitCustomerApproval() {
+            const approvedItems = [];
+            document.querySelectorAll('#cust-approval-list input[type="checkbox"]:checked').forEach(cb => { approvedItems.push(cb.nextElementSibling.textContent); });
+            const feedbackText = document.getElementById('customer-feedback-text').value.trim();
+            const updatePayload = { approved: JSON.stringify(approvedItems), customer_feedback_text: feedbackText, };
+            showSuccessMessage("Submitting your response...");
+            if (recordedAudioBlob) {
+                const filePath = `feedback-audio/${currentReportId}_${Date.now()}.webm`;
+                const { data: uploadData, error: uploadError } = await sb.storage.from('customer-media').upload(filePath, recordedAudioBlob);
+                if (uploadError) { showError('Failed to upload voice note. Please try again.'); console.error("Upload Error:", uploadError); return; }
+                const { data: urlData } = sb.storage.from('customer-media').getPublicUrl(filePath);
+                updatePayload.customer_feedback_audio = urlData.publicUrl;
+            }
+            const { error: dbError } = await sb.from('reports').update(updatePayload).eq('id', currentReportId);
+            if (dbError) { showError('Could not save your approval. Please try again.'); console.error("DB Update Error:", dbError); return; }
+            document.getElementById('customer-approval-content').classList.add('hidden');
+            document.getElementById('customer-thank-you').classList.remove('hidden');
+        }
 
+        // --- UTILITY & SETUP ---
+        function confirmDeletion(type, id, role) {
+            const modal = document.getElementById('delete-confirmation-modal');
+            const text = document.getElementById('delete-modal-text');
+            const button = document.getElementById('confirm-delete-button');
+            let message = '';
+            if (type === 'user') message = `Are you sure you want to delete this ${role}? This action cannot be undone.`;
+            else if (type === 'vehicle_model') message = `Are you sure you want to delete this vehicle model? This may affect existing records.`;
+            text.textContent = message;
+            button.onclick = () => executeDelete(type, id, role);
+            showModal('delete-confirmation-modal');
+        }
+        async function executeDelete(type, id, role) {
+            let error;
+            if (type === 'user') ({ error } = await sb.from('users').delete().eq('id', id));
+            else if (type === 'vehicle_model') ({ error } = await sb.from('vehicle_models').delete().eq('id', id));
+            hideModal('delete-confirmation-modal');
+            if(error) return showError(`Deletion failed: ${error.message}`);
+            showSuccessMessage('Item deleted successfully.');
+            if (type === 'user') renderUserList(role);
+            if (type === 'vehicle_model') renderVehicleModelList();
+        }
+        const formatArrayCell = (jsonString) => {
+            if (!jsonString || jsonString === '[]') return 'N/A';
+            try { const arr = JSON.parse(jsonString); return Array.isArray(arr) && arr.length > 0 ? arr.join(', ') : 'N/A'; }
+            catch (e) { return jsonString; }
+        };
+        function hideAllSections() {
+            vehicleDetailsSection.classList.add('hidden');
+            createVehicleSection.classList.add('hidden');
+            newComplaintSection.classList.add('hidden');
+            searchError.classList.add('hidden');
+        }
+        function resetJobCardState() {
+            hideAllSections();
+            document.getElementById('search-vehicle-number').value = '';
+            document.getElementById('create-vehicle-form').reset();
+            currentVehicleId = null;
+            currentComplaints = [];
+            renderComplaints();
+            document.getElementById('client-name-wrapper').innerHTML = `<p id="detail-client-name" class="font-semibold"></p>`;
+            document.getElementById('client-phone-wrapper').innerHTML = `<p id="detail-client-phone" class="font-semibold"></p>`;
+            document.getElementById('odometer-display-wrapper').innerHTML = `<p id="detail-odometer" class="font-semibold"></p>`;
+            clearDamageCanvas();
+            capturedPhotos = [];
+            voiceNoteBlob = null;
+            document.getElementById('photo-previews').innerHTML = '';
+            document.getElementById('audio-playback').innerHTML = '';
+            document.getElementById('recording-status').textContent = '';
+        }
+        function resetVehicleUpdateScreen() {
+            document.getElementById('update-search-input').value = '';
+            predictionList.classList.add('hidden');
+            updateDetailsSection.classList.add('hidden');
+            updateFormSection.classList.add('hidden');
+            document.getElementById('delivery-date').value = '';
+            newSuggestions = [];
+            currentMaterials = [];
+            currentReportId = null;
+            renderSuggestions();
+            renderMaterials();
+        }
+        function resizeCanvas() {
+            if (!carImage || !damageCanvas || !checkCanvas) return;
+            const redraw = () => {
+                const w = carImage.clientWidth;
+                const h = carImage.clientHeight;
+                if (w === 0 || h === 0) return;
+                damageCanvas.width = w; damageCanvas.height = h;
+                checkCanvas.width = w; checkCanvas.height = h;
+                checkCtx.drawImage(carImage, 0, 0, w, h);
+                redrawDamageMarks(damageCanvas, damageMarks);
+            };
+            requestAnimationFrame(redraw);
+        }
+        function undoLastMark() {
+            if (damageMarks.length > 0) { damageMarks.pop(); redrawDamageMarks(damageCanvas, damageMarks); }
+        }
+        function clearDamageCanvas() {
+            if (damageCtx) damageCtx.clearRect(0, 0, damageCanvas.width, damageCanvas.height);
+            damageMarks = [];
+        }
+        function redrawDamageMarks(canvas, marks) {
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!marks) return;
+            marks.forEach(mark => {
+                ctx.fillStyle = "red";
+                ctx.beginPath();
+                ctx.arc(mark.x, mark.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        function openMarksModal(marks) {
+            const marksArray = typeof marks === 'string' ? JSON.parse(marks) : marks;
+            const modal = document.getElementById("marks-modal");
+            modal.classList.remove("modal-hidden");
+            const modalCanvas = document.getElementById("modalCanvas");
+            const modalImage = document.getElementById("modalCarImage");
+            const drawOnModal = () => {
+                modalCanvas.width = modalImage.clientWidth;
+                modalCanvas.height = modalImage.clientHeight;
+                redrawDamageMarks(modalCanvas, marksArray);
+            };
+            if (modalImage.complete) drawOnModal();
+            else modalImage.onload = drawOnModal;
+        }
+        function closeMarksModal() { document.getElementById("marks-modal").classList.add("modal-hidden"); }
+        function showScreen(screenId) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(screenId).classList.add('active-screen'); }
+        function showAdminScreen(screenId) {
+            document.querySelectorAll('#admin-screens .admin-screen').forEach(s => s.style.display = 'none');
+            document.getElementById(screenId).style.display = 'block';
+            if (screenId === 'admin-vehicle-management-screen') renderVehicleModelList();
+            if (screenId === 'admin-reports-screen') fetchAndPopulateReports(true);
+            if (screenId === 'admin-analytics-screen') { populateAnalyticsFilters(); renderAnalytics(); }
+            if (screenId === 'admin-executive-management-screen') renderUserList('executive');
+            if (screenId === 'admin-admin-management-screen') renderUserList('admin');
+            showScreen('admin-screens');
+        }
+        function showExecutiveScreen(screenId) {
+            document.querySelectorAll('#executive-screens .executive-screen').forEach(s => s.style.display = 'none');
+            document.getElementById(screenId).style.display = 'block';
+            setActiveNav(screenId);
+            if (screenId === 'report-screen') fetchAndPopulateReports(false);
+            if (screenId === 'due-date-screen') populateDueDateScreen();
+            if (screenId === 'job-card-screen') resetJobCardState();
+            showScreen('executive-screens');
+        }
+        function setActiveNav(targetId) {
+            const headerTitle = document.getElementById('executive-header-title');
+            document.querySelectorAll('.nav-item').forEach(item => {
+                const isActive = item.dataset.target === targetId;
+                item.classList.toggle('active', isActive);
+                if (isActive) headerTitle.textContent = item.querySelector('span:last-child').textContent;
+            });
+        }
+        function showModal(id) { document.getElementById(id)?.classList.remove('modal-hidden'); }
+        function hideModal(id) { document.getElementById(id)?.classList.add('modal-hidden'); }
+        function showSuccessMessage(message) {
+            const el = document.getElementById('success-message');
+            document.getElementById('success-text').textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+        function showError(message) {
+            const el = document.getElementById('error-message');
+            document.getElementById('error-text').textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 4000);
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reportIdFromUrl = urlParams.get('report_id');
+            if (reportIdFromUrl) {
+                initializeCustomerView(reportIdFromUrl);
+            } else {
+                const savedUser = sessionStorage.getItem('currentUser');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                    if (currentUser.role === 'admin') showAdminScreen('admin-dashboard-screen');
+                    else if (currentUser.role === 'executive') {
+                        document.getElementById('profile-username').textContent = currentUser.username;
+                        document.getElementById('profile-role').textContent = currentUser.role;
+                        showExecutiveScreen('job-card-screen');
+                    }
+                }
+                carImage = document.getElementById("carImage");
+                damageCanvas = document.getElementById("damageCanvas");
+                checkCanvas = document.getElementById("checkCanvas");
+                if (carImage && damageCanvas && checkCanvas) {
+                    damageCtx = damageCanvas.getContext("2d");
+                    checkCtx = checkCanvas.getContext("2d");
+                    carImage.onload = resizeCanvas;
+                    window.addEventListener("resize", resizeCanvas);
+                    damageCanvas.addEventListener("click", (e) => {
+                        if (!checkCtx) return;
+                        const rect = damageCanvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        const pixel = checkCtx.getImageData(x, y, 1, 1).data;
+                        const alpha = pixel[3];
+                        if (alpha > 0) {
+                            damageCtx.fillStyle = "red";
+                            damageCtx.beginPath();
+                            damageCtx.arc(x, y, 5, 0, Math.PI * 2);
+                            damageCtx.fill();
+                            damageMarks.push({ x, y });
+                        }
+                    });
+                }
+            }
+        });
+        function printJobCardById(reportId) {
+            const reportData = reportsDataStore[reportId];
+            if (reportData) printJobCard(reportData);
+            else { console.error(`Report data not found for ID: ${reportId}`); showError("Could not find report data to print."); }
+        }
         function printJobCard(reportData) {
             document.getElementById('print-report-date').textContent = new Date(reportData.created_at).toLocaleString();
             document.getElementById('print-executive-name').textContent = reportData.users.username || 'N/A';
@@ -2319,124 +2029,72 @@
 			document.getElementById('print-client-name').textContent = reportData.client_name || 'N/A';
 			document.getElementById('print-client-phone').textContent = reportData.client_phone || 'N/A';
 			document.getElementById('print-odometer').textContent = reportData.odometer_reading || 'N/A';
-
-            
             const populateList = (listId, dataString) => {
                 const list = document.getElementById(listId);
                 list.innerHTML = '';
                 try {
                     const items = JSON.parse(dataString);
-                    if (items && items.length > 0) {
-                        items.forEach(item => {
-                            const li = document.createElement('li');
-                            li.textContent = item;
-                            list.appendChild(li);
-                        });
-                    } else {
-                        list.innerHTML = '<li>N/A</li>';
-                    }
-                } catch(e) {
-                    list.innerHTML = '<li>N/A</li>';
-                }
+                    if (items && items.length > 0) items.forEach(item => { const li = document.createElement('li'); li.textContent = item; list.appendChild(li); });
+                    else list.innerHTML = '<li>N/A</li>';
+                } catch(e) { list.innerHTML = '<li>N/A</li>'; }
             };
             populateList('print-complaints-list', reportData.complaint);
             populateList('print-suggested-list', reportData.suggested);
             populateList('print-approved-list', reportData.approved);
-
+            populateList('print-materials-list', reportData.materials_required);
             const printImage = document.getElementById('print-car-image');
             const printCanvas = document.getElementById('print-damage-canvas');
             const marksArray = reportData.marks ? JSON.parse(reportData.marks) : [];
-
             const drawMarksAndPrint = () => {
                 const sourceWidth = 384; 
                 const aspectRatio = printImage.naturalWidth / printImage.naturalHeight;
                 const sourceHeight = sourceWidth / aspectRatio;
-
-                const destWidth = 400;
-                const destHeight = destWidth / aspectRatio;
-                
-                printCanvas.width = destWidth;
-                printCanvas.height = destHeight;
-
-                const widthRatio = destWidth / sourceWidth;
-                const heightRatio = destHeight / sourceHeight;
-
-                const scaledMarks = marksArray.map(mark => ({
-                    x: mark.x * widthRatio,
-                    y: mark.y * heightRatio
-                }));
-
+                const destWidth = 400; const destHeight = destWidth / aspectRatio;
+                printCanvas.width = destWidth; printCanvas.height = destHeight;
+                const widthRatio = destWidth / sourceWidth; const heightRatio = destHeight / sourceHeight;
+                const scaledMarks = marksArray.map(mark => ({ x: mark.x * widthRatio, y: mark.y * heightRatio }));
                 redrawDamageMarks(printCanvas, scaledMarks);
                 window.print();
             };
-
-            if (printImage.complete) {
-                drawMarksAndPrint();
-            } else {
-                printImage.onload = drawMarksAndPrint;
-            }
+            if (printImage.complete) drawMarksAndPrint();
+            else printImage.onload = drawMarksAndPrint;
         }
-
 		function downloadReport() {
-    const isAdminScreenActive = document.getElementById('admin-screens').classList.contains('active-screen');
-    const table = isAdminScreenActive 
-        ? document.querySelector('#admin-reports-screen .report-table') 
-        : document.querySelector('#report-screen .report-table');
-
-    if (!table) {
-        showError('Could not find the report table.');
-        return;
-    }
-
-    const rows = table.querySelectorAll('tr');
-    if (rows.length <= 1) { 
-        showError('No data available to download.');
-        return;
-    }
-
-    let csv = [];
-    
-    const formatCell = (cellText) => {
-        let text = cellText.replace(/"/g, '""');
-        if (text.search(/("|,|\n)/g) >= 0) {
-            text = `"${text}"`;
-        }
-        return text;
-    };
-
-    const headers = [];
-    rows[0].querySelectorAll('th').forEach(th => {
-        headers.push(formatCell(th.textContent.trim()));
-    });
-    csv.push(headers.join(','));
-
-    for (let i = 1; i < rows.length; i++) {
-        const row = [], cols = rows[i].querySelectorAll('td');
-        for (let j = 0; j < cols.length; j++) {
-            if (j === 0) { 
-                row.push(formatCell(cols[j].querySelector('span:last-child').textContent.trim()));
-            } else if (cols[j].querySelector('button')) {
-                 row.push('See in App');
-            } else {
-                 row.push(formatCell(cols[j].textContent.trim()));
+            const isAdminScreenActive = document.getElementById('admin-screens').classList.contains('active-screen');
+            const table = isAdminScreenActive ? document.querySelector('#admin-reports-screen .report-table') : document.querySelector('#report-screen .report-table');
+            if (!table) return showError('Could not find the report table.');
+            const rows = table.querySelectorAll('tr');
+            if (rows.length <= 1) return showError('No data available to download.');
+            let csv = [];
+            const formatCell = (cellText) => {
+                let text = cellText.replace(/"/g, '""');
+                if (text.search(/("|,|\n)/g) >= 0) text = `"${text}"`;
+                return text;
+            };
+            const headers = [];
+            rows[0].querySelectorAll('th').forEach(th => headers.push(formatCell(th.textContent.trim())));
+            csv.push(headers.join(','));
+            for (let i = 1; i < rows.length; i++) {
+                const row = [], cols = rows[i].querySelectorAll('td');
+                for (let j = 0; j < cols.length; j++) {
+                    if (j === 0) row.push(formatCell(cols[j].querySelector('span:last-child').textContent.trim()));
+                    else if (cols[j].querySelector('button')) row.push('See in App');
+                    else if (cols[j].querySelector('audio')) row.push('Has Voice Note');
+                    else row.push(formatCell(cols[j].textContent.trim()));
+                }
+                csv.push(row.join(','));
             }
+            const csvFile = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const downloadLink = document.createElement('a');
+            const today = new Date().toISOString().slice(0, 10);
+            downloadLink.download = `AutoFix_Report_${today}.csv`;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            showSuccessMessage("Report is downloading...");
         }
-        csv.push(row.join(','));
-    }
-
-    const csvFile = new Blob([csv.join('\n')], { type: 'text/csv' });
-    const downloadLink = document.createElement('a');
-    
-    const today = new Date().toISOString().slice(0, 10);
-    downloadLink.download = `AutoFix_Report_${today}.csv`;
-    downloadLink.href = window.URL.createObjectURL(csvFile);
-    downloadLink.style.display = 'none';
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    
-    showSuccessMessage("Report is downloading...");
-}
     </script>
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
