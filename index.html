@@ -543,6 +543,63 @@
         </footer>
     </div>
     
+    <!-- Customer Approval Screen -->
+    <div id="customer-approval-screen" class="screen">
+        <div class="flex flex-col min-h-screen justify-center items-center p-4 bg-gray-50">
+            <div class="w-full max-w-lg">
+                <div class="flex justify-center items-center gap-3 mb-8">
+                    <span class="material-symbols-outlined text-4xl text-[var(--primary-color)]">minor_crash</span>
+                    <h1 class="text-3xl font-bold tracking-tight text-[var(--text-primary)]">AutoFix Service Approval</h1>
+                </div>
+                <div id="customer-approval-card" class="card space-y-6">
+                    <div class="text-center">
+                        <h2 class="text-2xl font-bold text-gray-800">Review & Approve Repairs</h2>
+                        <p class="text-[var(--text-secondary)] mt-1">For Vehicle: <span id="approval-vehicle-no" class="font-bold"></span></p>
+                    </div>
+                    
+                    <div id="approval-content" class="space-y-4">
+                        <div>
+                            <h3 class="font-bold text-gray-700 mb-2">Suggested Repairs:</h3>
+                            <p class="text-sm text-gray-500 -mt-2 mb-3">Please select the services you wish to approve.</p>
+                            <div id="approval-suggestions-list" class="space-y-2 border-t pt-3">
+                                <!-- Suggestions will be populated here -->
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-4">
+                            <label for="customer-feedback-text" class="form-label">Your Feedback (Optional):</label>
+                            <textarea id="customer-feedback-text" class="form-input" rows="3" placeholder="Let us know if you have any other comments..."></textarea>
+                        </div>
+                        
+                        <div class="border-t pt-4">
+                            <label class="form-label">Record a Voice Note (Optional):</label>
+                             <div class="flex items-center gap-3">
+                                <button id="customer-record-btn" type="button" onclick="startRecording('customer')" class="btn-secondary !w-auto !py-2 !px-3 text-sm flex items-center gap-2">
+                                    <span class="material-symbols-outlined">mic</span> Record
+                                </button>
+                                <button id="customer-stop-record-btn" type="button" onclick="stopRecording('customer')" class="btn-primary !w-auto !py-2 !px-3 text-sm flex items-center gap-2 hidden !bg-red-600">
+                                    <span class="material-symbols-outlined">stop_circle</span> Stop
+                                </button>
+                            </div>
+                            <div id="customer-audio-playback" class="mt-3"></div>
+                            <p id="customer-recording-status" class="text-sm text-gray-500 mt-1"></p>
+                        </div>
+
+                        <div class="mt-6 border-t pt-6">
+                             <button onclick="submitCustomerFeedback()" class="btn-primary">
+                                <span class="material-symbols-outlined">thumb_up</span> Submit Approval & Feedback
+                            </button>
+                        </div>
+                    </div>
+                     <div id="approval-success-message" class="hidden text-center p-4 bg-green-100 text-green-800 rounded-lg">
+                        <h3 class="font-bold text-xl">Thank You!</h3>
+                        <p>Your response has been submitted successfully.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="success-message" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg hidden flex items-center gap-2 transition-transform duration-300 transform"><span class="material-symbols-outlined">check_circle</span><span id="success-text"></span></div>
     <div id="error-message" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-full shadow-lg hidden flex items-center gap-2 transition-transform duration-300 transform"><span class="material-symbols-outlined">error</span><span id="error-text"></span></div>
     
@@ -1014,7 +1071,7 @@
             }
         }
 
-        async function startRecording() {
+        async function startRecording(context = 'executive') {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 showError('Audio recording is not supported on this browser.');
                 return;
@@ -1031,26 +1088,34 @@
                 mediaRecorder.addEventListener("stop", () => {
                     voiceNoteBlob = new Blob(audioChunks, { 'type' : 'audio/webm' });
                     const audioUrl = URL.createObjectURL(voiceNoteBlob);
-                    const audioPlayback = document.getElementById('audio-playback');
-                    audioPlayback.innerHTML = `<audio controls src="${audioUrl}" class="w-full"></audio>`;
+                    const audioPlaybackEl = context === 'customer' ? 'customer-audio-playback' : 'audio-playback';
+                    document.getElementById(audioPlaybackEl).innerHTML = `<audio controls src="${audioUrl}" class="w-full"></audio>`;
                 });
 
                 mediaRecorder.start();
-                document.getElementById('record-btn').classList.add('hidden');
-                document.getElementById('stop-record-btn').classList.remove('hidden');
-                document.getElementById('recording-status').textContent = 'Recording...';
+                const recordBtnId = context === 'customer' ? 'customer-record-btn' : 'record-btn';
+                const stopBtnId = context === 'customer' ? 'customer-stop-record-btn' : 'stop-record-btn';
+                const statusId = context === 'customer' ? 'customer-recording-status' : 'recording-status';
+
+                document.getElementById(recordBtnId).classList.add('hidden');
+                document.getElementById(stopBtnId).classList.remove('hidden');
+                document.getElementById(statusId).textContent = 'Recording...';
             } catch (err) {
                 showError('Microphone access was denied.');
                 console.error("Mic Error:", err);
             }
         }
 
-        function stopRecording() {
+        function stopRecording(context = 'executive') {
             if (mediaRecorder) {
                 mediaRecorder.stop();
-                document.getElementById('record-btn').classList.remove('hidden');
-                document.getElementById('stop-record-btn').classList.add('hidden');
-                document.getElementById('recording-status').textContent = 'Recording stopped. Press Save to upload.';
+                 const recordBtnId = context === 'customer' ? 'customer-record-btn' : 'record-btn';
+                const stopBtnId = context === 'customer' ? 'customer-stop-record-btn' : 'stop-record-btn';
+                const statusId = context === 'customer' ? 'customer-recording-status' : 'recording-status';
+
+                document.getElementById(recordBtnId).classList.remove('hidden');
+                document.getElementById(stopBtnId).classList.add('hidden');
+                document.getElementById(statusId).textContent = 'Recording stopped.';
             }
         }
 
@@ -1894,10 +1959,8 @@
             }
 
             if (!clientPhone) { showError("A client phone number could not be found for this report or vehicle."); return; }
-
-            // IMPORTANT: Replace this with the actual URL where the app is deployed
-            const yourVercelLink = "https://auto-fix-alpha.vercel.app/"; 
-            const approvalUrl = `${yourVercelLink}?report_id=${currentReportId}`;
+            
+            const approvalUrl = `${window.location.origin}${window.location.pathname}?report_id=${currentReportId}`;
             const messageText = `Dear Customer,\n\nPlease review and approve the suggested repairs for your vehicle using the link below:\n${approvalUrl}\n\nThank you,\nAutoFix Service`;
             
             const encodedText = encodeURIComponent(messageText);
@@ -2339,17 +2402,119 @@
             return response.json();
         }
 
+        // --- Customer Approval Flow ---
+        async function loadApprovalScreen(reportId) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('admin-screens').style.display = 'none';
+            document.getElementById('executive-screens').style.display = 'none';
+            document.getElementById('customer-approval-screen').classList.add('active-screen');
+
+            const { data: report, error } = await sb.from('reports')
+                .select(`suggested, vehicles ( vehicle_no )`)
+                .eq('id', reportId)
+                .single();
+
+            if (error || !report) {
+                console.error('Error fetching report for approval:', error);
+                showError('Could not load the approval details. The link may be invalid.');
+                document.getElementById('approval-content').innerHTML = '<p class="text-center text-red-600">Could not load report details.</p>';
+                return;
+            }
+
+            document.getElementById('approval-vehicle-no').textContent = report.vehicles.vehicle_no;
+            const suggestionsList = document.getElementById('approval-suggestions-list');
+            suggestionsList.innerHTML = '';
+
+            try {
+                const suggestions = JSON.parse(report.suggested || '[]');
+                if (suggestions.length > 0) {
+                    suggestions.forEach(text => {
+                        const item = document.createElement('label');
+                        item.className = 'flex items-center gap-3 p-3 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors';
+                        item.innerHTML = `
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="${text}">
+                            <span class="flex-1 text-sm font-medium">${text}</span>
+                        `;
+                        suggestionsList.appendChild(item);
+                    });
+                } else {
+                    suggestionsList.innerHTML = '<p class="text-sm text-gray-500">No specific repairs were suggested.</p>';
+                }
+            } catch(e) {
+                console.error("Error parsing suggestions:", e);
+                suggestionsList.innerHTML = '<p class="text-sm text-red-500">Could not display suggested repairs.</p>';
+            }
+        }
+
+        async function submitCustomerFeedback() {
+            const params = new URLSearchParams(window.location.search);
+            const reportId = params.get('report_id');
+            if (!reportId) {
+                return showError("Invalid session. Report ID not found.");
+            }
+
+            const approvedItems = [];
+            document.querySelectorAll('#approval-suggestions-list input[type="checkbox"]:checked').forEach(checkbox => {
+                approvedItems.push(checkbox.value);
+            });
+
+            const feedbackText = document.getElementById('customer-feedback-text').value.trim();
+            
+            const updateData = {
+                approved: JSON.stringify(approvedItems),
+                customer_feedback_text: feedbackText,
+            };
+
+            showSuccessMessage('Submitting your response...');
+
+            if (voiceNoteBlob) {
+                try {
+                    const filePath = `feedback_audio/report_${reportId}_${Date.now()}.webm`;
+                    // Note: Ensure you have a 'autofix-media' bucket with public access for this to work.
+                    const { error: uploadError } = await sb.storage
+                        .from('autofix-media')
+                        .upload(filePath, voiceNoteBlob);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = sb.storage.from('autofix-media').getPublicUrl(filePath);
+                    updateData.customer_feedback_audio = urlData.publicUrl;
+
+                } catch (error) {
+                    console.error('Audio upload error:', error);
+                    showError('Could not upload your voice note. Please try again.');
+                    return; 
+                }
+            }
+            
+            const { error } = await sb.from('reports').update(updateData).eq('id', reportId);
+
+            if (error) {
+                console.error('Error submitting feedback:', error);
+                return showError('Failed to submit your response. Please try again.');
+            }
+            
+            document.getElementById('approval-content').classList.add('hidden');
+            document.getElementById('approval-success-message').classList.remove('hidden');
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const savedUser = sessionStorage.getItem('currentUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                if (currentUser.role === 'admin') {
-                    showAdminScreen('admin-dashboard-screen');
-                } else if (currentUser.role === 'executive') {
-                    document.getElementById('profile-username').textContent = currentUser.username;
-                    document.getElementById('profile-role').textContent = currentUser.role;
-                    showExecutiveScreen('job-card-screen');
+            const params = new URLSearchParams(window.location.search);
+            const reportId = params.get('report_id');
+
+            if (reportId) {
+                loadApprovalScreen(reportId);
+            } else {
+                const savedUser = sessionStorage.getItem('currentUser');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                    if (currentUser.role === 'admin') {
+                        showAdminScreen('admin-dashboard-screen');
+                    } else if (currentUser.role === 'executive') {
+                        document.getElementById('profile-username').textContent = currentUser.username;
+                        document.getElementById('profile-role').textContent = currentUser.role;
+                        showExecutiveScreen('job-card-screen');
+                    }
                 }
             }
 
