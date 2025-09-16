@@ -2457,7 +2457,7 @@ async function sendApprovalLink() {
         clientPhone = vehicleData?.client_phone;
     }
     if (!clientPhone) { showError("A client phone number could not be found for this report or vehicle."); return; }
-    const yourVercelLink = "https://customer-suggestions.vercel.app/"; // TODO: replace with your deployed link
+    const yourVercelLink = "https://auto-fix-alpha.vercel.app/"; // TODO: replace with your deployed link
     const approvalUrl = `${yourVercelLink}?report_id=${currentReportId}`;
     const messageText = `Dear Customer,
 
@@ -2474,3 +2474,4 @@ AutoFix Service`;
 </script>
 </body>
 </html>
+
