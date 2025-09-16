@@ -155,7 +155,7 @@
     <input type="date" id="admin-filter-to-date" class="form-input" onchange="handleDateChange('admin-filter-from-date', 'admin-filter-to-date'); applyAdminReportFilters();">
 </div>
                         
-                        <input type="text" id="admin-filter-vehicle-no" class="form-input" placeholder="Vehicle Number" oninput="applyAdminReportFilters()">
+                        <input type="text" id="admin-filter-vehicle-no" class="form-input" placeholder="Vehicle Number" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); applyAdminReportFilters()">
                         <input type="text" id="admin-filter-brand" class="form-input" placeholder="Brand" oninput="applyAdminReportFilters()">
                         <input type="text" id="admin-filter-exec-name" class="form-input" placeholder="Executive Name" oninput="applyAdminReportFilters()">
                         <button onclick="clearAdminReportFilters()" class="text-sm h-11 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300">Clear Filters</button>
@@ -189,6 +189,8 @@
                                     <th>Complaint</th>
                                     <th>Suggested</th>
                                     <th>Approved</th>
+                                    <th>Customer's Feedback</th>
+                                    <th>Customer's Voice</th>
                                     <th>Marks</th>
                                     <th>Media</th>
                                 </tr>
@@ -243,7 +245,7 @@
                     <h2 class="text-xl font-bold mb-4">Vehicle No:</h2>
                     <input type="file" id="image-upload-input" class="hidden" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
                     <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
-                        <input id="search-vehicle-number" type="text" placeholder="Enter Vehicle Number (e.g., KL07AB1234)" class="form-input flex-grow min-w-0" onkeyup="this.value = this.value.toUpperCase()">
+                        <input id="search-vehicle-number" type="text" placeholder="Enter Vehicle Number (e.g., KL07AB1234)" class="form-input flex-grow min-w-0" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
                         <button onclick="document.getElementById('image-upload-input').click()" class="btn-secondary !w-auto flex-shrink-0 !py-2 !px-3">
                             <span class="material-symbols-outlined text-base sm:text-lg">photo_camera</span>
                             <span class="hidden sm:inline text-sm ml-1">Scan</span>
@@ -374,7 +376,7 @@
 
         <div id="vehicle-update-screen" class="executive-screen" style="display: none;">
              <main class="app-main">
-                <div class="card relative"><h2 class="text-xl font-bold mb-4">Search Report to Update</h2><input id="update-search-input" onkeyup="handleReportUpdateSearch()" type="text" placeholder="Start typing vehicle number..." class="form-input"><div id="prediction-list" class="absolute top-full left-5 right-5 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 hidden"></div></div>
+                <div class="card relative"><h2 class="text-xl font-bold mb-4">Search Report to Update</h2><input id="update-search-input" type="text" placeholder="Start typing vehicle number..." class="form-input" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')" onkeyup="handleReportUpdateSearch()"><div id="prediction-list" class="absolute top-full left-5 right-5 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 hidden"></div></div>
                 <div id="update-details-section" class="card hidden space-y-4">
                     <h2 class="text-xl font-bold flex items-center gap-2 text-green-600"><span class="material-symbols-outlined">check_circle</span> Selected Report</h2>
                     <div class="grid grid-cols-2 gap-4 text-base border-t pt-4">
@@ -390,23 +392,35 @@
                     <form onsubmit="event.preventDefault(); saveVehicleUpdate();" class="space-y-6">
                         <div><label class="form-label">Suggested Repair (from Executive)</label><div class="flex items-center gap-2"><input id="suggestion-input" type="text" class="form-input flex-grow" placeholder="e.g., Change engine oil"><button type="button" onclick="addSuggestion()" class="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200"><span class="material-symbols-outlined">add</span></button></div><div id="executive-suggestions-list" class="mt-3 space-y-2"></div></div>
                         <div><h3 class="text-base font-bold mb-2 border-t pt-4">Customer Approved Suggestions</h3><div id="customer-approval-list" class="space-y-2"><p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p></div></div>
+                        
+                        <div>
+                            <label class="form-label border-t pt-4">Materials Required for Service</label>
+                            <div class="flex items-center gap-2">
+                                <input id="material-input" type="text" class="form-input flex-grow" placeholder="e.g., 1L Engine Oil, 4 Spark Plugs">
+                                <button type="button" onclick="addMaterial()" class="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 shrink-0">
+                                    <span class="material-symbols-outlined">add</span>
+                                </button>
+                            </div>
+                            <div id="materials-required-list" class="mt-3 space-y-2"></div>
+                        </div>
+
                         <div><label for="delivery-date" class="form-label border-t pt-4">Expected Delivery Date</label><input id="delivery-date" type="date" class="form-input" required></div>
                         
-<div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <button type="submit" class="btn-primary">
-        <span class="material-symbols-outlined">save</span>Save Update
-    </button>
-    <button type="button" onclick="sendApprovalLink()" class="btn-whatsapp">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556
-            5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248
-            3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448L.057 24zm6.597-3.807c1.676.995
-            3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.003-5.462-4.415-9.89-9.881-9.894-5.462-.004-9.89 4.415-9.894
-            9.881-.002 2.225.651 3.891 1.746 5.634l-.999 3.648 3.747-.976zm11.387-5.464c-.074-.124-.272-.198-.568-.347-.297-.149-1.758-.868-2.03-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.149-.173.198-.297.297-.495.099-.198.05-.372-.025-.521-.074-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"></path>
-        </svg>
-        Send Approval via WhatsApp
-    </button>
-</div>
+                        <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button type="submit" class="btn-primary">
+                                <span class="material-symbols-outlined">save</span>Save Update
+                            </button>
+                            <button type="button" onclick="sendApprovalLink()" class="btn-whatsapp">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556
+                                    5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248
+                                    3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448L.057 24zm6.597-3.807c1.676.995
+                                    3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.003-5.462-4.415-9.89-9.881-9.894-5.462-.004-9.89 4.415-9.894
+                                    9.881-.002 2.225.651 3.891 1.746 5.634l-.999 3.648 3.747-.976zm11.387-5.464c-.074-.124-.272-.198-.568-.347-.297-.149-1.758-.868-2.03-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.149-.173.198-.297.297-.495.099-.198.05-.372-.025-.521-.074-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"></path>
+                                </svg>
+                                Send Approval via WhatsApp
+                            </button>
+                        </div>
 
                     </form>
                 </div>
@@ -427,7 +441,7 @@
     <input type="date" id="filter-to-date" class="form-input" onchange="handleDateChange('filter-from-date', 'filter-to-date'); applyReportFilters();">
 </div>
                        
-                        <input type="text" id="filter-vehicle-no" class="form-input" placeholder="Vehicle Number" oninput="applyReportFilters()">
+                        <input type="text" id="filter-vehicle-no" class="form-input" placeholder="Vehicle Number" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); applyReportFilters()">
                         <input type="text" id="filter-brand" class="form-input" placeholder="Brand" oninput="applyReportFilters()">
                         <input type="text" id="filter-exec-name" class="form-input" placeholder="Executive Name" oninput="applyReportFilters()">
                         <button onclick="clearReportFilters()" class="text-sm h-11 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300">Clear Filters</button>
@@ -461,6 +475,8 @@
                                     <th>Complaint</th>
                                     <th>Suggested</th>
                                     <th>Approved</th>
+                                    <th>Customer's Feedback</th>
+                                    <th>Customer's Voice</th>
                                     <th>Marks</th>
                                     <th>Media</th>
                                 </tr>
@@ -772,6 +788,7 @@
         let currentReportId = null;
         let originalComplaintsForUpdate = [];
 		let newSuggestions = [];
+        let requiredMaterials = [];
         let currentComplaints = []; 
         let currentOdometer = 0; 
         let originalClientName = '';
@@ -1210,7 +1227,7 @@
             }
 
             let query = sb.from('reports').select(`
-                id, created_at, status, complaint, suggested, approved, marks, odometer_reading, client_name, client_phone, gdrive_folder_url,
+                id, created_at, status, complaint, suggested, approved, marks, odometer_reading, client_name, client_phone, gdrive_folder_url, customer_feedback_text, customer_feedback_audio,
                 vehicles!inner( 
                     id, vehicle_no, vehicle_name, color, engine_no, chassis_no, 
                     vehicle_models!inner( brand, model ) 
@@ -1281,6 +1298,11 @@
                     mediaLink = `<a href="${row.gdrive_folder_url}" target="_blank" class="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs font-semibold">View Files</a>`;
                 }
 
+                let customerVoiceCell = 'N/A';
+                if (row.customer_feedback_audio) {
+                    customerVoiceCell = `<audio controls src="${row.customer_feedback_audio}" class="w-48 h-8"></audio>`;
+                }
+
                 tr.innerHTML = `
                     <td class="flex items-center gap-x-2">
                         <button onclick='printJobCardById(${row.id})' class="text-gray-500 hover:text-green-600 p-1 rounded-full shrink-0"><span class="material-symbols-outlined">download</span></button>
@@ -1301,6 +1323,8 @@
                     <td class="whitespace-normal max-w-xs truncate" title="${formatArrayCell(row.complaint)}">${formatArrayCell(row.complaint)}</td>
                     <td class="whitespace-normal max-w-xs truncate" title="${formatArrayCell(row.suggested)}">${formatArrayCell(row.suggested)}</td>
                     <td class="whitespace-normal max-w-xs truncate" title="${formatArrayCell(row.approved)}">${formatArrayCell(row.approved)}</td>
+                    <td class="whitespace-normal max-w-xs truncate" title="${row.customer_feedback_text || ''}">${row.customer_feedback_text || 'N/A'}</td>
+                    <td>${customerVoiceCell}</td>
                     <td>${marksButton}</td>
                     <td>${mediaLink}</td>
                 `;
@@ -1561,9 +1585,10 @@
             if (currentComplaints.length === 0) return showError('Please add at least one complaint.');
             if (!currentVehicleId) return showError('No vehicle selected.');
 
-            // New: Check for authorization and prompt if needed
-            if (!gapi.client.getToken()) {
-                showError('Google Drive access required. Please authorize.');
+            const hasMedia = capturedPhotos.length > 0 || voiceNoteBlob;
+
+            if (hasMedia && !gapi.client.getToken()) {
+                showError('Google Drive access required for media. Please authorize.');
                 tokenClient.callback = async (resp) => {
                     if (resp.error !== undefined) {
                         showError('Authorization failed. Please try again.');
@@ -1571,10 +1596,10 @@
                     }
                     updateAuthUI(true);
                     showSuccessMessage('Google Drive authorized. Now saving...');
-                    await saveComplaints(); // Re-run the save function after auth
+                    await saveComplaints();
                 };
                 tokenClient.requestAccessToken({prompt: 'consent'});
-                return; // Stop this run, the callback will trigger the next one
+                return;
             }
             
             const newOdometerInput = document.getElementById('detail-odometer-input');
@@ -1609,46 +1634,41 @@
             }
 
             const reportId = reportData.id;
-            const vehicleNo = document.getElementById('detail-vehicle-number').textContent || `Vehicle-${currentVehicleId}`;
-            const jobFolderName = `${vehicleNo}_${reportId}`;
 
-            try {
-                const folderId = await createDriveFolder(jobFolderName);
-                
-                const uploadPromises = [];
-                capturedPhotos.forEach((photo, index) => {
-                    uploadPromises.push(uploadFileToDrive(folderId, photo, `photo_${index + 1}.jpg`));
-                });
-                if (voiceNoteBlob) {
-                    uploadPromises.push(uploadFileToDrive(folderId, voiceNoteBlob, 'voice_note.webm'));
-                }
+            if (hasMedia) {
+                const vehicleNo = document.getElementById('detail-vehicle-number').textContent || `Vehicle-${currentVehicleId}`;
+                const jobFolderName = `${vehicleNo}_${reportId}`;
 
-                await Promise.all(uploadPromises);
-                
-                const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
-                const { error: updateError } = await sb.from('reports').update({ gdrive_folder_url: folderUrl }).eq('id', reportId);
-                if (updateError) {
-                    throw updateError;
+                try {
+                    const folderId = await createDriveFolder(jobFolderName);
+                    
+                    const uploadPromises = [];
+                    capturedPhotos.forEach((photo, index) => {
+                        uploadPromises.push(uploadFileToDrive(folderId, photo, `photo_${index + 1}.jpg`));
+                    });
+                    if (voiceNoteBlob) {
+                        uploadPromises.push(uploadFileToDrive(folderId, voiceNoteBlob, 'voice_note.webm'));
+                    }
+
+                    await Promise.all(uploadPromises);
+                    
+                    const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+                    const { error: updateError } = await sb.from('reports').update({ gdrive_folder_url: folderUrl }).eq('id', reportId);
+                    if (updateError) throw updateError;
+                    
+                    showSuccessMessage('Media uploaded successfully!');
+                } catch (driveError) {
+                    console.error('Google Drive or DB Update Error:', driveError);
+                    showError('Report saved, but media upload failed. Check Google Drive authorization.');
                 }
-                showSuccessMessage('Media uploaded successfully!');
-            } catch (driveError) {
-                console.error('Google Drive or DB Update Error:', driveError);
-                showError('Media upload failed. Please check Google Drive authorization on your Profile page and try again.');
             }
 
-            // --- Update Vehicle Details (as before) ---
             const updates = {};
             const newOdometer = parseInt(serviceOdometer);
 
-            if (newOdometer > currentOdometer) {
-                updates.odometer = newOdometer;
-            }
-            if (serviceClientName !== originalClientName) {
-                updates.client_name = serviceClientName;
-            }
-            if (serviceClientPhone !== originalClientPhone) {
-                updates.client_phone = serviceClientPhone;
-            }
+            if (newOdometer > currentOdometer) updates.odometer = newOdometer;
+            if (serviceClientName !== originalClientName) updates.client_name = serviceClientName;
+            if (serviceClientPhone !== originalClientPhone) updates.client_phone = serviceClientPhone;
 
             if (Object.keys(updates).length > 0) {
                 const { error: vehicleUpdateError } = await sb.from('vehicles').update(updates).eq('id', currentVehicleId);
@@ -1709,6 +1729,7 @@
                 originalComplaintsForUpdate = [];
             }
             newSuggestions = []; 
+            requiredMaterials = [];
             
             const complaintDisplayList = document.getElementById('original-complaints-list');
             const complaintSummaryP = document.getElementById('update-detail-complaint');
@@ -1729,6 +1750,7 @@
             }
 
             renderSuggestions();
+            renderMaterials();
 
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('delivery-date').setAttribute('min', today);
@@ -1754,7 +1776,6 @@
             executiveList.innerHTML = '';
             customerList.innerHTML = '';
 
-            // Part 1: Render original complaints as selectable items for approval
             if (originalComplaintsForUpdate.length > 0) {
                 originalComplaintsForUpdate.forEach(text => {
                     const customerItem = document.createElement('label');
@@ -1764,10 +1785,8 @@
                 });
             }
 
-            // Part 2: Render NEW suggestions from the executive
             if (newSuggestions.length > 0) {
                 newSuggestions.forEach((text, index) => {
-                    // Add to the executive's list WITH a delete button
                     const execItem = document.createElement('div');
                     execItem.className = 'flex items-center justify-between bg-blue-50 p-2 rounded-lg text-sm text-blue-800';
                     execItem.innerHTML = `
@@ -1778,7 +1797,6 @@
                     `;
                     executiveList.appendChild(execItem);
 
-                    // Add as a selectable checkbox to the customer's approval list
                     const customerItem = document.createElement('label');
                     customerItem.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100';
                     customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="flex-1">${text}</span>`;
@@ -1786,9 +1804,40 @@
                 });
             }
 
-            // Handle empty state for customer approval list
             if (customerList.innerHTML === '') {
                 customerList.innerHTML = '<p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p>';
+            }
+        }
+
+        function addMaterial() {
+            const input = document.getElementById('material-input');
+            const materialText = input.value.trim();
+            if (materialText) {
+                requiredMaterials.push(materialText);
+                input.value = '';
+                renderMaterials();
+            }
+        }
+        function deleteMaterial(index) {
+            requiredMaterials.splice(index, 1);
+            renderMaterials();
+        }
+
+        function renderMaterials() {
+            const list = document.getElementById('materials-required-list');
+            list.innerHTML = '';
+            if (requiredMaterials.length > 0) {
+                requiredMaterials.forEach((text, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between bg-gray-50 p-2 rounded-lg text-sm';
+                    item.innerHTML = `
+                        <p class="flex-1 mr-2">${text}</p>
+                        <button type="button" onclick="deleteMaterial(${index})" class="text-red-500 hover:text-red-700 shrink-0">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    `;
+                    list.appendChild(item);
+                });
             }
         }
 
@@ -1808,6 +1857,7 @@
             const updateData = {
                 suggested: JSON.stringify(allSuggestions),
                 approved: JSON.stringify(approvedItems),
+                materials_required: JSON.stringify(requiredMaterials),
                 expected_delivery: deliveryDate,
                 status: 'Ongoing'
             };
@@ -1816,9 +1866,46 @@
             if(error) return showError(`Failed to save update: ${error.message}`);
 
             showSuccessMessage('Update saved successfully!');
-            if (shouldReset) resetVehicleUpdateScreen();
+            if (shouldReset) {
+                resetVehicleUpdateScreen();
+            }
         }
         
+        async function sendApprovalLink() {
+            if (!currentReportId) { showError('No report is currently selected.'); return; }
+            await saveVehicleUpdate(false); // Save current state before sending
+            const { data: reportData, error: reportError } = await sb
+                .from('reports')
+                .select('client_phone, vehicle_id')
+                .eq('id', currentReportId)
+                .single();
+
+            if (reportError) { console.error("Error fetching report details:", reportError); showError("Could not fetch report details to send the link."); return; }
+            
+            let clientPhone = reportData.client_phone;
+            if (!clientPhone && reportData.vehicle_id) {
+                const { data: vehicleData, error: vehicleError } = await sb
+                    .from('vehicles')
+                    .select('client_phone')
+                    .eq('id', reportData.vehicle_id)
+                    .single();
+                if (vehicleError) { console.error("Error fetching vehicle's phone number:", vehicleError); showError("Could not fetch the vehicle's primary phone number."); return; }
+                clientPhone = vehicleData?.client_phone;
+            }
+
+            if (!clientPhone) { showError("A client phone number could not be found for this report or vehicle."); return; }
+
+            // IMPORTANT: Replace this with the actual URL where the app is deployed
+            const yourVercelLink = "https://auto-fix-alpha.vercel.app/"; 
+            const approvalUrl = `${yourVercelLink}?report_id=${currentReportId}`;
+            const messageText = `Dear Customer,\n\nPlease review and approve the suggested repairs for your vehicle using the link below:\n${approvalUrl}\n\nThank you,\nAutoFix Service`;
+            
+            const encodedText = encodeURIComponent(messageText);
+            const whatsappUrl = `https://wa.me/91${clientPhone}?text=${encodedText}`;
+            
+            window.open(whatsappUrl, '_blank');
+        }
+
         // --- EXECUTIVE: DUE DATES ---
         async function populateDueDateScreen() {
             const listContainer = document.getElementById('due-date-list');
@@ -2036,8 +2123,10 @@
             updateFormSection.classList.add('hidden');
             document.getElementById('delivery-date').value = '';
             newSuggestions = [];
+            requiredMaterials = [];
             currentReportId = null;
             renderSuggestions();
+            renderMaterials();
         }
 
         // --- Damage Marking Functions ---
@@ -2412,7 +2501,7 @@
         for (let j = 0; j < cols.length; j++) {
             if (j === 0) { 
                 row.push(formatCell(cols[j].querySelector('span:last-child').textContent.trim()));
-            } else if (cols[j].querySelector('button')) {
+            } else if (cols[j].querySelector('button') || cols[j].querySelector('audio')) {
                  row.push('See in App');
             } else {
                  row.push(formatCell(cols[j].textContent.trim()));
@@ -2436,42 +2525,7 @@
 }
     </script>
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()">
-async function sendApprovalLink() {
-    if (!currentReportId) { showError('No report is currently selected.'); return; }
-    await saveVehicleUpdate(false);
-    const { data: reportData, error: reportError } = await sb
-        .from('reports')
-        .select('client_phone, vehicle_id')
-        .eq('id', currentReportId)
-        .single();
-    if (reportError) { console.error("Error fetching report details:", reportError); showError("Could not fetch report details to send the link."); return; }
-    let clientPhone = reportData.client_phone;
-    if (!clientPhone && reportData.vehicle_id) {
-        const { data: vehicleData, error: vehicleError } = await sb
-            .from('vehicles')
-            .select('client_phone')
-            .eq('id', reportData.vehicle_id)
-            .single();
-        if (vehicleError) { console.error("Error fetching vehicle's phone number:", vehicleError); showError("Could not fetch the vehicle's primary phone number."); return; }
-        clientPhone = vehicleData?.client_phone;
-    }
-    if (!clientPhone) { showError("A client phone number could not be found for this report or vehicle."); return; }
-    const yourVercelLink = "https://auto-fix-alpha.vercel.app/"; // TODO: replace with your deployed link
-    const approvalUrl = `${yourVercelLink}?report_id=${currentReportId}`;
-    const messageText = `Dear Customer,
-
-Please review and approve the suggested repairs for your vehicle using the link below:
-${approvalUrl}
-
-Thank you,
-AutoFix Service`;
-    const encodedText = encodeURIComponent(messageText);
-    const whatsappUrl = `https://wa.me/91${clientPhone}?text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
-}
-
-</script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
 
