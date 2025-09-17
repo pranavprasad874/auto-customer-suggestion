@@ -387,6 +387,11 @@
                         <h3 class="font-bold text-gray-700 mb-2">Registered Complaints:</h3>
                         <ul id="original-complaints-list" class="list-disc list-inside text-gray-600 space-y-1"></ul>
                     </div>
+                    <div id="customer-feedback-display" class="border-t pt-4 hidden">
+                        <h3 class="font-bold text-green-700 mb-2 flex items-center gap-2"><span class="material-symbols-outlined">rate_review</span> Customer Feedback Received:</h3>
+                        <div id="customer-feedback-text-display" class="text-gray-600 bg-gray-50 p-3 rounded-lg hidden"></div>
+                        <div id="customer-feedback-audio-display" class="mt-2 hidden"></div>
+                    </div>
                 </div>
                 <div id="update-form-section" class="card hidden">
                     <form onsubmit="event.preventDefault(); saveVehicleUpdate();" class="space-y-6">
@@ -868,10 +873,10 @@
 
         // --- OCR SCANNER FUNCTIONS (using OCR.space API) ---
         
-        /**
-         * Resizes and compresses an image file before uploading.
+/**
+         * Resizes and compresses an image file before uploading, ensuring the correct file extension.
          * @param {File} file The original image file.
-         * @returns {Promise<File>} A promise that resolves with the new, smaller image file.
+         * @returns {Promise<File>} A promise that resolves with the new, smaller JPEG image file.
          */
         function resizeImage(file) {
             return new Promise((resolve, reject) => {
@@ -890,7 +895,10 @@
 
                         canvas.toBlob((blob) => {
                             if (blob) {
-                                resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+                                // FIX: Create a new filename with .jpg extension to match the blob type
+                                const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                                const newFileName = `${baseName}.jpg`;
+                                resolve(new File([blob], newFileName, { type: 'image/jpeg', lastModified: Date.now() }));
                             } else {
                                 reject(new Error('Canvas to Blob conversion failed'));
                             }
@@ -1119,17 +1127,20 @@
             }
         }
 
-        // --- AUTHENTICATION & UTILITIES ---
+// --- AUTHENTICATION & UTILITIES ---
         const normalizeVehicleNumber = (num) => {
             if (!num) return '';
-            let normalized = num.toUpperCase().replace(/[^A-Z0-9]/g, '');
-            
-            // Auto-corrects common OCR error for Kerala plates like KL9 to KL09
-            if (normalized.startsWith('KL') && !isNaN(normalized[2]) && isNaN(normalized[3])) {
-                 normalized = normalized.slice(0, 2) + '0' + normalized.slice(2);
+            const cleaned = num.replace(/[\s\W_]+/g, '').toUpperCase();
+            const match = cleaned.match(/^([A-Z]{2})(\d{1,2})([A-Z]{1,2})(\d{1,4})$/);
+            if (match) {
+                const state = match[1];
+                let rto = match[2];
+                const series = match[3];
+                let number = match[4];
+                if (rto.length === 1) rto = '0' + rto;
+                return `${state}${rto}${series}${number}`;
             }
-            
-            return normalized;
+            return cleaned;
         };
 
         async function login() {
@@ -1769,7 +1780,7 @@
 
             const vehicleIds = vehiclesData.map(v => v.id);
 
-            const { data } = await sb.from('reports').select(`id, complaint, approved, suggested, vehicles!inner(vehicle_no)`).in('vehicle_id', vehicleIds).neq('status', 'Completed').limit(5);
+            const { data } = await sb.from('reports').select(`id, complaint, approved, suggested, customer_feedback_text, customer_feedback_audio, vehicles!inner(vehicle_no)`).in('vehicle_id', vehicleIds).neq('status', 'Completed').limit(5);
             if (!data || data.length === 0) {
                 predictionList.classList.add('hidden');
                 return;
@@ -1823,6 +1834,32 @@
             } else {
                  complaintSummaryP.textContent = 'No complaints registered.';
                  complaintDisplayDiv.classList.add('hidden');
+            }
+
+            // Display customer feedback if available
+            const feedbackDisplay = document.getElementById('customer-feedback-display');
+            const feedbackTextDisplay = document.getElementById('customer-feedback-text-display');
+            const feedbackAudioDisplay = document.getElementById('customer-feedback-audio-display');
+
+            // Reset visibility and content first
+            feedbackDisplay.classList.add('hidden');
+            feedbackTextDisplay.classList.add('hidden');
+            feedbackAudioDisplay.classList.add('hidden');
+            feedbackTextDisplay.textContent = '';
+            feedbackAudioDisplay.innerHTML = '';
+
+            if (report.customer_feedback_text || report.customer_feedback_audio) {
+                feedbackDisplay.classList.remove('hidden');
+
+                if (report.customer_feedback_text) {
+                    feedbackTextDisplay.textContent = report.customer_feedback_text;
+                    feedbackTextDisplay.classList.remove('hidden');
+                }
+
+                if (report.customer_feedback_audio) {
+                    feedbackAudioDisplay.innerHTML = `<audio controls src="${report.customer_feedback_audio}" class="w-full"></audio>`;
+                    feedbackAudioDisplay.classList.remove('hidden');
+                }
             }
 
             const approvedItems = report.approved ? JSON.parse(report.approved) : [];
@@ -2700,3 +2737,4 @@
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
+
