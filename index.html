@@ -78,6 +78,50 @@
         .printable-area {
             display: none;
         }
+/* ADD THIS CSS FOR THE TABS */
+.tab-button {
+    @apply -mb-px border-b-2 border-transparent px-4 py-3 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700;
+}
+.tab-button.active-tab {
+    @apply border-blue-600 text-blue-600;
+}
+.menu-container {
+    position: relative;
+}
+.menu-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 20;
+    width: 120px;
+}
+.menu-container:hover .dropdown-menu {
+    display: block;
+}
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+.dropdown-item:hover {
+    background-color: #f3f4f6; /* Gray 100 */
+}
+.dropdown-item .material-symbols-outlined {
+    font-size: 1.25rem;
+}
         @media print {
             body * {
                 visibility: hidden;
@@ -104,8 +148,8 @@
                     <div class="text-center"><h2 class="text-2xl font-bold text-gray-800">Welcome Back</h2><p class="text-[var(--text-secondary)] mt-1">Please sign in to your account.</p></div>
                     <form onsubmit="event.preventDefault(); login();">
                         <div class="space-y-4">
-                            <div><label for="username" class="form-label">Username</label><div class="relative"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">person</span><input class="form-input pl-10" id="username" placeholder="Enter your username" type="text" /></div></div>
-                            <div><label for="password" class="form-label">Password</label><div class="relative"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span><input class="form-input pl-10" id="password" placeholder="Enter your password" type="password" /></div></div>
+                            <div><label for="username" class="form-label">Username <span class="text-red-500">*</span></label><div class="relative"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">person</span><input class="form-input pl-10" id="username" placeholder="Enter your username" type="text" /></div></div>
+                            <div><label for="password" class="form-label">Password <span class="text-red-500">*</span></label><div class="relative"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span><input class="form-input pl-10" id="password" placeholder="Enter your password" type="password" /></div></div>
                         </div>
                         <div class="mt-6">
                             <button type="submit" class="btn-primary">
@@ -135,7 +179,10 @@
         <div id="admin-vehicle-management-screen" class="admin-screen" style="display:none;">
             <header class="app-header"><div class="app-header-content"><button class="absolute left-4 text-[var(--text-secondary)] hover:text-[var(--primary-color)]" onclick="showAdminScreen('admin-dashboard-screen')"><span class="material-symbols-outlined">arrow_back_ios_new</span></button><h1 class="text-2xl font-bold text-[var(--primary-color)] flex-1 text-center">Vehicle Management</h1></div></header>
             <main class="app-main">
-                <div class="card"><h2 class="text-xl font-bold mb-4">Create New Vehicle Brand & Model</h2><form id="add-vehicle-model-form" onsubmit="event.preventDefault(); addVehicleModel();" class="space-y-4"><input id="new-brand-admin" class="form-input" placeholder="Enter Brand (e.g., Maruti Suzuki)" required /><input id="new-model-admin" class="form-input" placeholder="Enter Model (e.g., Swift)" required /><button type="submit" class="btn-primary"><span class="material-symbols-outlined">add</span>Add Vehicle Model</button></form></div>
+                <div class="card"><h2 class="text-xl font-bold mb-4">Create New Vehicle Brand & Model</h2><form id="add-vehicle-model-form" onsubmit="event.preventDefault(); addVehicleModel();" class="space-y-4">
+                    <div><label for="new-brand-admin" class="form-label">Brand <span class="text-red-500">*</span></label><input id="new-brand-admin" class="form-input" placeholder="Enter Brand (e.g., Maruti Suzuki)" required /></div>
+                    <div><label for="new-model-admin" class="form-label">Model <span class="text-red-500">*</span></label><input id="new-model-admin" class="form-input" placeholder="Enter Model (e.g., Swift)" required /></div>
+                    <button type="submit" class="btn-primary"><span class="material-symbols-outlined">add</span>Add Vehicle Model</button></form></div>
                 <div class="card space-y-3"><h2 class="text-xl font-bold">Existing Brands & Models</h2><div id="vehicle-models-list"></div></div>
             </main>
         </div>
@@ -214,7 +261,10 @@
         <div id="admin-executive-management-screen" class="admin-screen" style="display: none;">
             <header class="app-header"><div class="app-header-content"><button class="absolute left-4 text-[var(--text-secondary)] hover:text-[var(--primary-color)]" onclick="showAdminScreen('admin-dashboard-screen')"><span class="material-symbols-outlined">arrow_back_ios_new</span></button><h1 class="text-2xl font-bold text-[var(--primary-color)] flex-1 text-center">Executive Management</h1></div></header>
             <main class="app-main">
-                <div class="card"><h2 class="text-xl font-bold mb-4">Create New Executive</h2><form id="add-exec-form" onsubmit="event.preventDefault(); addUser('executive');" class="space-y-4"><input id="new-exec-username" class="form-input" placeholder="Enter Username" required /><input id="new-exec-pass" class="form-input" placeholder="Enter Password" type="password" required /><button type="submit" class="btn-primary"><span class="material-symbols-outlined">add</span>Create Executive</button></form></div>
+                <div class="card"><h2 class="text-xl font-bold mb-4">Create New Executive</h2><form id="add-exec-form" onsubmit="event.preventDefault(); addUser('executive');" class="space-y-4">
+                    <div><label for="new-exec-username" class="form-label">Username <span class="text-red-500">*</span></label><input id="new-exec-username" class="form-input" placeholder="Enter Username" required /></div>
+                    <div><label for="new-exec-pass" class="form-label">Password <span class="text-red-500">*</span></label><input id="new-exec-pass" class="form-input" placeholder="Enter Password" type="password" required /></div>
+                    <button type="submit" class="btn-primary"><span class="material-symbols-outlined">add</span>Create Executive</button></form></div>
                 <div class="card space-y-3"><h2 class="text-xl font-bold">Executive List</h2><div id="executives-list"></div></div>
             </main>
         </div>
@@ -222,7 +272,10 @@
         <div id="admin-admin-management-screen" class="admin-screen" style="display: none;">
             <header class="app-header"><div class="app-header-content"><button class="absolute left-4 text-[var(--text-secondary)] hover:text-[var(--primary-color)]" onclick="showAdminScreen('admin-dashboard-screen')"><span class="material-symbols-outlined">arrow_back_ios_new</span></button><h1 class="text-2xl font-bold text-[var(--primary-color)] flex-1 text-center">Admin Management</h1></div></header>
             <main class="app-main">
-                <div class="card"><h2 class="text-xl font-bold mb-4">Create New Admin</h2><form id="add-admin-form" onsubmit="event.preventDefault(); addUser('admin');" class="space-y-4"><input id="new-admin-username" class="form-input" placeholder="Enter Username" required /><input id="new-admin-pass" class="form-input" placeholder="Enter Password" type="password" required /><button type="submit" class="btn-primary"><span class="material-symbols-outlined">add</span>Create Admin</button></form></div>
+                <div class="card"><h2 class="text-xl font-bold mb-4">Create New Admin</h2><form id="add-admin-form" onsubmit="event.preventDefault(); addUser('admin');" class="space-y-4">
+                    <div><label for="new-admin-username" class="form-label">Username <span class="text-red-500">*</span></label><input id="new-admin-username" class="form-input" placeholder="Enter Username" required /></div>
+                    <div><label for="new-admin-pass" class="form-label">Password <span class="text-red-500">*</span></label><input id="new-admin-pass" class="form-input" placeholder="Enter Password" type="password" required /></div>
+                    <button type="submit" class="btn-primary"><span class="material-symbols-outlined">add</span>Create Admin</button></form></div>
                 <div class="card space-y-3"><h2 class="text-xl font-bold">Admin List</h2><div id="admins-list"></div></div>
             </main>
         </div>
@@ -296,16 +349,16 @@
                     <form id="create-vehicle-form" onsubmit="event.preventDefault(); createVehicle();" class="border-t pt-4"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label class="form-label">Vehicle Number</label><input id="new-vehicle-number" type="text" class="form-input bg-gray-100" readonly></div>
                     <div><label class="form-label">Vehicle Name</label><input id="new-vehicle-name" type="text" class="form-input" placeholder="e.g., Swift VXI" ></div>
-                    <div><label class="form-label">Brand</label><select id="new-vehicle-brand-exec" class="form-input" required onchange="populateModelDropdown()"></select></div>
-                    <div><label class="form-label">Model</label><select id="new-vehicle-model-exec" class="form-input" required></select></div>
+                    <div><label class="form-label">Brand <span class="text-red-500">*</span></label><select id="new-vehicle-brand-exec" class="form-input" required onchange="populateModelDropdown()"></select></div>
+                    <div><label class="form-label">Model <span class="text-red-500">*</span></label><select id="new-vehicle-model-exec" class="form-input" required></select></div>
                     <div><label class="form-label">Color</label><input id="new-color" type="text" class="form-input" placeholder="e.g., White" ></div>
-                    <div><label class="form-label">Fuel Type</label><select id="new-fuel-type" class="form-input" required><option value="">Select Type</option><option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option></select></div>
-                    <div><label class="form-label">Engine Number</label><input id="new-engine-no" type="text" class="form-input" placeholder="Enter engine number" required></div>
-                    <div><label class="form-label">Chassis Number</label><input id="new-chassis-no" type="text" class="form-input" placeholder="Enter chassis number" required></div>
-                    <div class="sm:col-span-2"><label class="form-label">Odometer Reading (km)</label><input id="new-odometer" type="number" class="form-input" placeholder="e.g., 54000" required></div>
-                    <div class="sm:col-span-2 border-t pt-4"><label class="form-label">Client Name</label><input id="new-client-name" type="text" class="form-input" placeholder="e.g., John Doe" required></div>
+                    <div><label class="form-label">Fuel Type <span class="text-red-500">*</span></label><select id="new-fuel-type" class="form-input" required><option value="">Select Type</option><option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option></select></div>
+                    <div><label class="form-label">Engine Number <span class="text-red-500">*</span></label><input id="new-engine-no" type="text" class="form-input" placeholder="Enter engine number" required></div>
+                    <div><label class="form-label">Chassis Number <span class="text-red-500">*</span></label><input id="new-chassis-no" type="text" class="form-input" placeholder="Enter chassis number" required></div>
+                    <div class="sm:col-span-2"><label class="form-label">Odometer Reading (km) <span class="text-red-500">*</span></label><input id="new-odometer" type="number" class="form-input" placeholder="e.g., 54000" required></div>
+                    <div class="sm:col-span-2 border-t pt-4"><label class="form-label">Client Name <span class="text-red-500">*</span></label><input id="new-client-name" type="text" class="form-input" placeholder="e.g., John Doe" required></div>
 <div class="sm:col-span-2">
-    <label class="form-label">Client Phone</label>
+    <label class="form-label">Client Phone <span class="text-red-500">*</span></label>
     <input id="new-client-phone" type="tel" class="form-input" placeholder="e.g., 9876543210" required maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
 </div>
                 </div><div class="mt-6"><button type="submit" class="btn-primary"><span class="material-symbols-outlined">save</span>Save Vehicle</button></div></form></div>
@@ -375,61 +428,83 @@
         </div>
 
         <div id="vehicle-update-screen" class="executive-screen" style="display: none;">
-             <main class="app-main">
-                <div class="card relative"><h2 class="text-xl font-bold mb-4">Search Report to Update</h2><input id="update-search-input" type="text" placeholder="Start typing vehicle number..." class="form-input" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')" onkeyup="handleReportUpdateSearch()"><div id="prediction-list" class="absolute top-full left-5 right-5 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 hidden"></div></div>
-                <div id="update-details-section" class="card hidden space-y-4">
-                    <h2 class="text-xl font-bold flex items-center gap-2 text-green-600"><span class="material-symbols-outlined">check_circle</span> Selected Report</h2>
-                    <div class="grid grid-cols-2 gap-4 text-base border-t pt-4">
-                        <div><p class="font-medium text-[var(--text-secondary)]">Vehicle Number</p><p id="update-detail-number" class="font-bold text-lg"></p></div>
-                        <div><p class="font-medium text-[var(--text-secondary)]">Total Complaints</p><p id="update-detail-complaint" class="font-semibold"></p></div>
-                    </div>
-                    <div id="original-complaints-display" class="border-t pt-4 hidden">
-                        <h3 class="font-bold text-gray-700 mb-2">Registered Complaints:</h3>
-                        <ul id="original-complaints-list" class="list-disc list-inside text-gray-600 space-y-1"></ul>
-                    </div>
-                    <div id="customer-feedback-display" class="border-t pt-4 hidden">
-                        <h3 class="font-bold text-green-700 mb-2 flex items-center gap-2"><span class="material-symbols-outlined">rate_review</span> Customer Feedback Received:</h3>
-                        <div id="customer-feedback-text-display" class="text-gray-600 bg-gray-50 p-3 rounded-lg hidden"></div>
-                        <div id="customer-feedback-audio-display" class="mt-2 hidden"></div>
-                    </div>
-                </div>
-                <div id="update-form-section" class="card hidden">
-                    <form onsubmit="event.preventDefault(); saveVehicleUpdate();" class="space-y-6">
-                        <div><label class="form-label">Suggested Repair (from Mechanic)</label><div class="flex items-center gap-2"><input id="suggestion-input" type="text" class="form-input flex-grow" placeholder="e.g., Change engine oil"><button type="button" onclick="addSuggestion()" class="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200"><span class="material-symbols-outlined">add</span></button></div><div id="executive-suggestions-list" class="mt-3 space-y-2"></div></div>
-                        <div><h3 class="text-base font-bold mb-2 border-t pt-4">Customer Approved Suggestions</h3><div id="customer-approval-list" class="space-y-2"><p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p></div></div>
-                        
-                        <div>
-                            <label class="form-label border-t pt-4">Materials Required for Service</label>
-                            <div class="flex items-center gap-2">
-                                <input id="material-input" type="text" class="form-input flex-grow" placeholder="e.g., 1L Engine Oil, 4 Spark Plugs">
-                                <button type="button" onclick="addMaterial()" class="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 shrink-0">
-                                    <span class="material-symbols-outlined">add</span>
-                                </button>
-                            </div>
-                            <div id="materials-required-list" class="mt-3 space-y-2"></div>
-                        </div>
 
-                        <div><label for="delivery-date" class="form-label border-t pt-4">Expected Delivery Date</label><input id="delivery-date" type="date" class="form-input" required></div>
-                        
-                        <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button type="submit" class="btn-primary">
-                                <span class="material-symbols-outlined">save</span>Save Update
-                            </button>
-                            <button type="button" onclick="sendApprovalLink()" class="btn-whatsapp">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556
-                                    5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248
-                                    3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448L.057 24zm6.597-3.807c1.676.995
-                                    3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.003-5.462-4.415-9.89-9.881-9.894-5.462-.004-9.89 4.415-9.894
-                                    9.881-.002 2.225.651 3.891 1.746 5.634l-.999 3.648 3.747-.976zm11.387-5.464c-.074-.124-.272-.198-.568-.347-.297-.149-1.758-.868-2.03-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.149-.173.198-.297.297-.495.099-.198.05-.372-.025-.521-.074-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"></path>
-                                </svg>
-                                Send Approval via WhatsApp
-                            </button>
-                        </div>
 
-                    </form>
+			<main class="app-main">
+  
+
+    <div id="update-tab-container" class="card !p-0">
+        <div class="flex border-b border-gray-200 px-5">
+            <button id="tab-btn-pending" class="tab-button active-tab" onclick="showUpdateTab('pending')">Pending Jobs</button>
+            <button id="tab-btn-awaiting" class="tab-button" onclick="showUpdateTab('awaiting')">Awaiting Response</button>
+            <button id="tab-btn-responses" class="tab-button" onclick="showUpdateTab('responses')">Responses Received</button>
+        </div>
+        <div class="p-5">
+            <div id="pending-jobs-panel" class="tab-panel">
+                <div id="not-started-jobs-list" class="space-y-3"></div>
+                <p id="no-pending-jobs-message" class="text-center text-gray-500 py-8 hidden">No pending job cards found.</p>
+            </div>
+            <div id="awaiting-response-panel" class="tab-panel hidden">
+                <div id="awaiting-response-list" class="space-y-3"></div>
+                <p id="no-awaiting-response-message" class="text-center text-gray-500 py-8 hidden">No jobs are currently awaiting a customer response.</p>
+            </div>
+            <div id="responses-received-panel" class="tab-panel hidden">
+                <div id="customer-response-list" class="space-y-3"></div>
+                <p id="no-customer-response-message" class="text-center text-gray-500 py-8 hidden">No new customer responses found.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="update-details-section" class="card hidden space-y-4">
+        <h2 class="text-xl font-bold flex items-center gap-2 text-green-600"><span class="material-symbols-outlined">check_circle</span> Selected Report</h2>
+        <div class="grid grid-cols-2 gap-4 text-base border-t pt-4">
+            <div><p class="font-medium text-[var(--text-secondary)]">Vehicle Number</p><p id="update-detail-number" class="font-bold text-lg"></p></div>
+            <div><p class="font-medium text-[var(--text-secondary)]">Total Complaints</p><p id="update-detail-complaint" class="font-semibold"></p></div>
+        </div>
+        <div id="original-complaints-display" class="border-t pt-4 hidden">
+            <h3 class="font-bold text-gray-700 mb-2">Registered Complaints:</h3>
+            <ul id="original-complaints-list" class="list-disc list-inside text-gray-600 space-y-1"></ul>
+        </div>
+        <div id="customer-feedback-display" class="border-t pt-4 hidden">
+            <h3 class="font-bold text-green-700 mb-2 flex items-center gap-2"><span class="material-symbols-outlined">rate_review</span> Customer Feedback Received:</h3>
+            <div id="customer-feedback-text-display" class="text-gray-600 bg-gray-50 p-3 rounded-lg hidden"></div>
+            <div id="customer-feedback-audio-display" class="mt-2 hidden"></div>
+        </div>
+    </div>
+    <div id="update-form-section" class="card hidden">
+        <form onsubmit="event.preventDefault(); saveVehicleUpdate();" class="space-y-6">
+            <div><label class="form-label">Suggested Repair (from Mechanic)</label><div class="flex items-center gap-2"><input id="suggestion-input" type="text" class="form-input flex-grow" placeholder="e.g., Change engine oil"><button type="button" onclick="addSuggestion()" class="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200"><span class="material-symbols-outlined">add</span></button></div><div id="executive-suggestions-list" class="mt-3 space-y-2"></div></div>
+            <div><h3 class="text-base font-bold mb-2 border-t pt-4">Customer Approved Suggestions</h3><div id="customer-approval-list" class="space-y-2"><p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p></div></div>
+            
+            <div>
+                <label class="form-label border-t pt-4">Materials Required for Service</label>
+                <div class="flex items-center gap-2">
+                    <input id="material-input" type="text" class="form-input flex-grow" placeholder="e.g., 1L Engine Oil, 4 Spark Plugs">
+                    <button type="button" onclick="addMaterial()" class="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 shrink-0">
+                        <span class="material-symbols-outlined">add</span>
+                    </button>
                 </div>
-             </main>
+                <div id="materials-required-list" class="mt-3 space-y-2"></div>
+            </div>
+
+            <div><label for="delivery-date" class="form-label border-t pt-4">Expected Delivery Date <span class="text-red-500">*</span></label><input id="delivery-date" type="date" class="form-input" required></div>
+            
+            <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button type="submit" class="btn-primary">
+                    <span class="material-symbols-outlined">save</span>Save Update
+                </button>
+                <button type="button" id="send-whatsapp-btn" onclick="sendApprovalLink()" class="btn-whatsapp">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.003-5.462-4.415-9.89-9.881-9.894-5.462-.004-9.89 4.415-9.894 9.881-.002 2.225.651 3.891 1.746 5.634l-.999 3.648 3.747-.976zm11.387-5.464c-.074-.124-.272-.198-.568-.347-.297-.149-1.758-.868-2.03-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.149-.173.198-.297.297-.495.099-.198.05-.372-.025-.521-.074-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"></path>
+                    </svg>
+                    Send Approval via WhatsApp
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+
+			
         </div>
         
         <div id="report-screen" class="executive-screen" style="display: none;">
@@ -525,9 +600,9 @@
                 <div class="card">
                     <h2 class="text-xl font-bold mb-4">Reset Password</h2>
                     <form onsubmit="event.preventDefault(); resetPassword();" class="space-y-4 border-t pt-4">
-                        <div><label class="form-label">Current Password</label><input id="current-password" type="password" class="form-input" required></div>
-                        <div><label class="form-label">New Password</label><input id="new-password" type="password" class="form-input" required></div>
-                        <div><label class="form-label">Confirm New Password</label><input id="confirm-new-password" type="password" class="form-input" required></div>
+                        <div><label class="form-label">Current Password <span class="text-red-500">*</span></label><input id="current-password" type="password" class="form-input" required></div>
+                        <div><label class="form-label">New Password <span class="text-red-500">*</span></label><input id="new-password" type="password" class="form-input" required></div>
+                        <div><label class="form-label">Confirm New Password <span class="text-red-500">*</span></label><input id="confirm-new-password" type="password" class="form-input" required></div>
                         <div class="pt-2"><button type="submit" class="btn-primary"><span class="material-symbols-outlined">lock_reset</span>Reset Password</button></div>
                     </form>
                 </div>
@@ -542,7 +617,7 @@
                 <a href="javascript:void(0)" class="nav-item active" data-target="job-card-screen" onclick="showExecutiveScreen('job-card-screen')"><span class="material-symbols-outlined">description</span><span>Job Card</span></a>
                 <a href="javascript:void(0)" class="nav-item" data-target="vehicle-update-screen" onclick="showExecutiveScreen('vehicle-update-screen')"><span class="material-symbols-outlined">update</span><span>Update</span></a>
                 <a href="javascript:void(0)" class="nav-item" data-target="report-screen" onclick="showExecutiveScreen('report-screen')"><span class="material-symbols-outlined">assessment</span><span>Report</span></a>
-                <a href="javascript:void(0)" class="nav-item" data-target="due-date-screen" onclick="showExecutiveScreen('due-date-screen')"><span class="material-symbols-outlined">event_available</span><span>Due Date</span></a>
+                <a href="javascript:void(0)" class="nav-item" data-target="due-date-screen" onclick="showExecutiveScreen('due-date-screen')"><span class="material-symbols-outlined">event_available</span><span>Close</span></a>
                 <a href="javascript:void(0)" class="nav-item" data-target="profile-screen" onclick="showExecutiveScreen('profile-screen')"><span class="material-symbols-outlined">person</span><span>Profile</span></a>
             </div>
         </footer>
@@ -629,6 +704,78 @@
 
 
     <div id="delete-confirmation-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-hidden"><div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div><div class="relative bg-white rounded-lg p-6 w-full max-w-sm m-4 space-y-4"><h3 class="text-xl font-bold text-gray-800">Confirm Deletion</h3><p id="delete-modal-text" class="text-gray-600"></p><div class="flex justify-end gap-4 pt-4"><button onclick="hideModal('delete-confirmation-modal')" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold">Cancel</button><button id="confirm-delete-button" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold">Confirm Delete</button></div></div></div>
+
+<div id="duplicate-job-card-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-hidden">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative bg-white rounded-lg p-6 w-full max-w-md m-4 space-y-4">
+        <div class="flex items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10">
+                <span class="material-symbols-outlined text-yellow-600">warning</span>
+            </div>
+            <div class="ml-4 text-left">
+                 <h3 class="text-xl font-bold text-gray-800">Duplicate Job Card Warning</h3>
+                 <p id="duplicate-modal-text" class="text-gray-600 mt-2"></p>
+            </div>
+        </div>
+        <div class="mt-4 border-t pt-4">
+            <label for="duplicate-confirmation-input" class="form-label">To proceed with creating a new job card, please type 'yes' below and confirm.</label>
+            <input id="duplicate-confirmation-input" type="text" class="form-input" placeholder="Type 'yes' to confirm">
+        </div>
+        <div class="flex justify-end gap-4 pt-4">
+            <button onclick="hideModal('duplicate-job-card-modal')" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold">Cancel</button>
+            <button id="confirm-duplicate-button" onclick="handleDuplicateConfirmation()" class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-semibold">Confirm & Proceed</button>
+        </div>
+    </div>
+</div>
+
+
+<div id="cancel-confirmation-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-hidden">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative bg-white rounded-lg p-6 w-full max-w-md m-4 space-y-4">
+        <div class="flex items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                <span class="material-symbols-outlined text-red-600">cancel</span>
+            </div>
+            <div class="ml-4 text-left">
+                 <h3 class="text-xl font-bold text-gray-800">Confirm Job Cancellation</h3>
+                 <p id="cancel-modal-text" class="text-gray-600 mt-2"></p>
+            </div>
+        </div>
+        <div class="mt-4 border-t pt-4">
+            <label for="cancel-confirmation-input" class="form-label">To confirm cancellation, please type 'cancel' below.</label>
+            <input id="cancel-confirmation-input" type="text" class="form-input" placeholder="Type 'cancel' to confirm">
+        </div>
+        <div class="flex justify-end gap-4 pt-4">
+            <button onclick="closeCancelModal()" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold">Back</button>
+            <button id="confirm-cancel-button" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold">Confirm Cancellation</button>
+        </div>
+    </div>
+</div>
+
+
+<div id="complete-confirmation-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-hidden">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative bg-white rounded-lg p-6 w-full max-w-md m-4 space-y-4">
+        <div class="flex items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                <span class="material-symbols-outlined text-green-600">check_circle</span>
+            </div>
+            <div class="ml-4 text-left">
+                 <h3 class="text-xl font-bold text-gray-800">Confirm Job Completion</h3>
+                 <p id="complete-modal-text" class="text-gray-600 mt-2"></p>
+            </div>
+        </div>
+        <div class="mt-4 border-t pt-4">
+            <label for="complete-confirmation-input" class="form-label">To confirm that this job is completed, please type 'yes' below.</label>
+            <input id="complete-confirmation-input" type="text" class="form-input" placeholder="Type 'yes' to confirm">
+        </div>
+        <div class="flex justify-end gap-4 pt-4">
+            <button onclick="cancelCompletion()" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold">Cancel</button>
+            <button id="confirm-complete-button" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold">Confirm Completion</button>
+        </div>
+    </div>
+</div>
+
 
     <div id="marks-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 modal-hidden z-50">
       <div class="bg-white rounded-lg p-4 relative max-w-lg w-full">
@@ -784,8 +931,23 @@
 </div>
     
     <script>
-        // --- Google API Client Libraries ---
-        // Moved to bottom of body to ensure functions are defined before they are called.
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://gfylsjfljnwyomfouwvs.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmeWxzamZsam53eW9tZm91d3ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MDc5MTYsImV4cCI6MjA3Mjk4MzkxNn0.hMvLvCDVaFtq0rXToHGOJPSFe-QnJ6_S-MYsI0d5zOs';
+        const sb = createClient(supabaseUrl, supabaseKey);
+
+        // --- Google Drive API Configuration ---
+        const CLIENT_ID = '903962440902-olb0km18p980o04na5hi4ah4f6lanms1.apps.googleusercontent.com'; // Paste your OAuth 2.0 Client ID here
+        const API_KEY = 'AIzaSyDq39bo-QQRWbPWM0qWcolswBdkBpiLR3w'; // Paste your API Key here
+        const PARENT_FOLDER_ID = '1jmD_XBl_4a_FEvT3xQ9RKgH7-26gmM30'; // Paste your Google Drive Folder ID here
+        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+
+        // --- Google API Client Loader Functions ---
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
         }
@@ -805,26 +967,6 @@
             gisInited = true;
             checkInitialAuth();
         }
-    </script>
-    <script>
-        const { createClient } = supabase;
-        const supabaseUrl = 'https://gfylsjfljnwyomfouwvs.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmeWxzamZsam53eW9tZm91d3ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MDc5MTYsImV4cCI6MjA3Mjk4MzkxNn0.hMvLvCDVaFtq0rXToHGOJPSFe-QnJ6_S-MYsI0d5zOs';
-        const sb = createClient(supabaseUrl, supabaseKey);
-
-        // --- Google Drive API Configuration ---
-        // PASTE YOUR CREDENTIALS HERE
-        const CLIENT_ID = '903962440902-olb0km18p980o04na5hi4ah4f6lanms1.apps.googleusercontent.com'; // Paste your OAuth 2.0 Client ID here
-        const API_KEY = 'AIzaSyDq39bo-QQRWbPWM0qWcolswBdkBpiLR3w'; // Paste your API Key here
-        const PARENT_FOLDER_ID = '1jmD_XBl_4a_FEvT3xQ9RKgH7-26gmM30'; // Paste your Google Drive Folder ID here
-        // END OF CONFIGURATION
-
-        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-
-        let tokenClient;
-        let gapiInited = false;
-        let gisInited = false;
 
         // Global error handler for unhandled promise rejections.
         window.addEventListener('unhandledrejection', function(event) {
@@ -840,16 +982,19 @@
             showError(errorMessage);
             event.preventDefault();
         });
+		
+	
 
 
         // --- Global State ---
         let currentUser = null;
         let vehicleModelsCache = [];
         let reportsDataStore = {};
+        let updateableReportsStore = {};
         let currentVehicleId = null;
         let currentReportId = null;
-        let originalComplaintsForUpdate = [];
-		let newSuggestions = [];
+let allServiceItems = [];
+let originalComplaintTexts = []; // To keep track of which items were original complaints
         let requiredMaterials = [];
         let currentComplaints = []; 
         let currentOdometer = 0; 
@@ -1057,27 +1202,57 @@
         
         // --- Media Upload & Recording Functions ---
 
-        function handlePhotoUploads(event) {
-            const files = event.target.files;
-            if (!files) return;
+function handlePhotoUploads(event) {
+    const newFiles = event.target.files;
+    if (!newFiles) return;
+    // Add the newly selected files to our existing array
+    capturedPhotos.push(...Array.from(newFiles));
+    renderPhotoPreviews();
+    // Reset the input so the user can add the same file again if they remove it
+    event.target.value = '';
+}
+// ADD this new function to render the photo previews
+function renderPhotoPreviews() {
+    const previewsContainer = document.getElementById('photo-previews');
+    previewsContainer.innerHTML = ''; // Clear all previews to re-render
+    if (capturedPhotos.length === 0) return;
+    capturedPhotos.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const previewWrapper = document.createElement('div');
+            previewWrapper.className = 'relative aspect-square group';
+            previewWrapper.innerHTML = `
+                <img src="${e.target.result}" class="w-full h-full object-cover rounded-lg">
+                <button onclick="removePhoto(${index})" class="absolute top-1 right-1 bg-red-600/80 text-white rounded-full h-6 w-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            `;
+            previewsContainer.appendChild(previewWrapper);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+// ADD this new function to handle removing a photo
+function removePhoto(indexToRemove) {
+    // Remove the photo from our array at the specified index
+    capturedPhotos.splice(indexToRemove, 1);
+    // Re-render the previews to reflect the change
+    renderPhotoPreviews();
+}
 
-            const previewsContainer = document.getElementById('photo-previews');
-            previewsContainer.innerHTML = ''; // Clear existing previews
-            capturedPhotos = Array.from(files); // Store the file objects
-
-            for (const file of capturedPhotos) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const previewWrapper = document.createElement('div');
-                    previewWrapper.className = 'relative aspect-square';
-                    previewWrapper.innerHTML = `
-                        <img src="${e.target.result}" class="w-full h-full object-cover rounded-lg">
-                    `;
-                    previewsContainer.appendChild(previewWrapper);
-                };
-                reader.readAsDataURL(file);
+    // ADD THIS HELPER FUNCTION
+    function ensureObjectFormat(arr) {
+        if (!arr || !Array.isArray(arr)) return [];
+        return arr.map(item => {
+            if (typeof item === 'string') {
+                return { text: item, cost: 0 }; // Convert old string data
             }
-        }
+            // Ensure cost is a number, default to 0 if missing/invalid
+            item.cost = Number(item.cost) || 0;
+            return item;
+        });
+    }
+
 
         async function startRecording(context = 'executive') {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -1154,7 +1329,7 @@
                 .ilike('username', username)
                 .single();
 
-            if (error || !data || data.password.toLowerCase() !== password.toLowerCase()) {
+            if (error || !data || data.password !== password) {
     	    return showError('Invalid credentials.');
            }
             
@@ -1367,7 +1542,7 @@
             }
             noReportsMsg.classList.add('hidden');
             
-            const statusColors = { 'Completed': 'bg-green-100 text-green-800', 'Ongoing': 'bg-orange-100 text-orange-800', 'Not Started': 'bg-red-100 text-red-800' };
+            const statusColors = { 'Completed': 'bg-green-100 text-green-800', 'Ongoing': 'bg-orange-100 text-orange-800', 'Not Started': 'bg-red-100 text-red-800', 'Cancelled': 'bg-gray-200 text-gray-800' };
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 let marksButton = 'N/A';
@@ -1661,262 +1836,399 @@
             });
         }
         
-		async function saveComplaints() {
-            addComplaint(); 
+
+// ADD this new function
+async function handleDuplicateConfirmation() {
+    const confirmationInput = document.getElementById('duplicate-confirmation-input');
+    if (confirmationInput.value.trim().toLowerCase() === 'yes') {
+        hideModal('duplicate-job-card-modal');
+        confirmationInput.value = ''; // Clear the input
+        await executeSaveComplaints(); // Proceed with saving
+    } else {
+        showError("Confirmation text did not match. Please type 'yes' to proceed.");
+    }
+}
+
+// REPLACE the existing saveComplaints function with these TWO new functions
+async function saveComplaints() {
+    addComplaint(); 
+    
+    if (currentComplaints.length === 0) return showError('Please add at least one complaint.');
+    if (!currentVehicleId) return showError('No vehicle selected.');
+
+    // --- Check for existing job card ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1); // Start of tomorrow
+
+    const { data: existingReport, error: checkError } = await sb
+        .from('reports')
+        .select('id, users ( username )') 
+        .eq('vehicle_id', currentVehicleId)
+        .gte('created_at', today.toISOString())
+        .lt('created_at', tomorrow.toISOString())
+        .maybeSingle();
+
+    if (checkError) {
+        console.error("Error checking for existing report:", checkError);
+        return showError('Could not check for existing job cards. Please try again.');
+    }
+
+    if (existingReport) {
+        const executiveName = existingReport.users ? existingReport.users.username : 'another executive';
+        document.getElementById('duplicate-modal-text').textContent = `A job card for this vehicle was already created today by ${executiveName}. Are you sure you want to create another one?`;
+        showModal('duplicate-job-card-modal');
+        return; // Stop here and wait for user confirmation
+    }
+    
+    // If no duplicate is found, proceed directly
+    await executeSaveComplaints();
+}
+
+async function executeSaveComplaints() {
+    const hasMedia = capturedPhotos.length > 0 || voiceNoteBlob;
+
+    if (hasMedia && !gapi.client.getToken()) {
+        showError('Google Drive access required for media. Please authorize.');
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) {
+                showError('Authorization failed. Please try again.');
+                throw (resp);
+            }
+            updateAuthUI(true);
+            showSuccessMessage('Google Drive authorized. Now saving...');
+            await executeSaveComplaints(); // Retry saving after auth
+        };
+        tokenClient.requestAccessToken({prompt: 'consent'});
+        return;
+    }
+    
+    const newOdometerInput = document.getElementById('detail-odometer-input');
+    const serviceOdometer = newOdometerInput.value;
+
+    const serviceClientName = document.getElementById('detail-client-name-input').value.trim();
+    const serviceClientPhone = document.getElementById('detail-client-phone-input').value.trim();
+    
+    if (!/^\d{10}$/.test(serviceClientPhone)) {
+        return showError('Please enter a valid 10-digit phone number for the client.');
+    }
+    if (!serviceClientName) {
+        return showError('Client name cannot be empty.');
+    }
+    
+    showSuccessMessage('Saving report...');
+
+    const { data: reportData, error: reportError } = await sb.from('reports').insert({
+        vehicle_id: currentVehicleId,
+        executive_id: currentUser.id,
+        complaint: JSON.stringify(currentComplaints),
+        status: 'Not Started',
+        marks: JSON.stringify(damageMarks),
+        odometer_reading: serviceOdometer,
+        client_name: serviceClientName,
+        client_phone: serviceClientPhone
+    }).select('id').single();
+
+    if(reportError) {
+        console.error("Error saving report:", reportError);
+        return showError(`Failed to save complaints: ${reportError.message}`);
+    }
+
+    const reportId = reportData.id;
+
+    if (hasMedia) {
+        const vehicleNo = document.getElementById('detail-vehicle-number').textContent || `Vehicle-${currentVehicleId}`;
+        const jobFolderName = `${vehicleNo}_${reportId}`;
+
+        try {
+            const folderId = await createDriveFolder(jobFolderName);
             
-            if (currentComplaints.length === 0) return showError('Please add at least one complaint.');
-            if (!currentVehicleId) return showError('No vehicle selected.');
-
-            const hasMedia = capturedPhotos.length > 0 || voiceNoteBlob;
-
-            if (hasMedia && !gapi.client.getToken()) {
-                showError('Google Drive access required for media. Please authorize.');
-                tokenClient.callback = async (resp) => {
-                    if (resp.error !== undefined) {
-                        showError('Authorization failed. Please try again.');
-                        throw (resp);
-                    }
-                    updateAuthUI(true);
-                    showSuccessMessage('Google Drive authorized. Now saving...');
-                    await saveComplaints();
-                };
-                tokenClient.requestAccessToken({prompt: 'consent'});
-                return;
-            }
-            
-            const newOdometerInput = document.getElementById('detail-odometer-input');
-            const serviceOdometer = newOdometerInput.value;
-
-            const serviceClientName = document.getElementById('detail-client-name-input').value.trim();
-            const serviceClientPhone = document.getElementById('detail-client-phone-input').value.trim();
-            
-            if (!/^\d{10}$/.test(serviceClientPhone)) {
-                return showError('Please enter a valid 10-digit phone number for the client.');
-            }
-            if (!serviceClientName) {
-                return showError('Client name cannot be empty.');
-            }
-            
-            showSuccessMessage('Saving report...');
-
-            const { data: reportData, error: reportError } = await sb.from('reports').insert({
-                vehicle_id: currentVehicleId,
-                executive_id: currentUser.id,
-                complaint: JSON.stringify(currentComplaints),
-                status: 'Not Started',
-                marks: JSON.stringify(damageMarks),
-                odometer_reading: serviceOdometer,
-                client_name: serviceClientName,
-                client_phone: serviceClientPhone
-            }).select('id').single();
-
-            if(reportError) {
-                console.error("Error saving report:", reportError);
-                return showError(`Failed to save complaints: ${reportError.message}`);
-            }
-
-            const reportId = reportData.id;
-
-            if (hasMedia) {
-                const vehicleNo = document.getElementById('detail-vehicle-number').textContent || `Vehicle-${currentVehicleId}`;
-                const jobFolderName = `${vehicleNo}_${reportId}`;
-
-                try {
-                    const folderId = await createDriveFolder(jobFolderName);
-                    
-                    const uploadPromises = [];
-                    capturedPhotos.forEach((photo, index) => {
-                        uploadPromises.push(uploadFileToDrive(folderId, photo, `photo_${index + 1}.jpg`));
-                    });
-                    if (voiceNoteBlob) {
-                        uploadPromises.push(uploadFileToDrive(folderId, voiceNoteBlob, 'voice_note.webm'));
-                    }
-
-                    await Promise.all(uploadPromises);
-                    
-                    const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
-                    const { error: updateError } = await sb.from('reports').update({ gdrive_folder_url: folderUrl }).eq('id', reportId);
-                    if (updateError) throw updateError;
-                    
-                    showSuccessMessage('Media uploaded successfully!');
-                } catch (driveError) {
-                    console.error('Google Drive or DB Update Error:', driveError);
-                    showError('Report saved, but media upload failed. Check Google Drive authorization.');
-                }
-            }
-
-            const updates = {};
-            const newOdometer = parseInt(serviceOdometer);
-
-            if (newOdometer > currentOdometer) updates.odometer = newOdometer;
-            if (serviceClientName !== originalClientName) updates.client_name = serviceClientName;
-            if (serviceClientPhone !== originalClientPhone) updates.client_phone = serviceClientPhone;
-
-            if (Object.keys(updates).length > 0) {
-                const { error: vehicleUpdateError } = await sb.from('vehicles').update(updates).eq('id', currentVehicleId);
-                 if(vehicleUpdateError) {
-                    console.error("Error updating vehicle details:", vehicleUpdateError);
-                    showError('Report saved, but failed to update vehicle details.');
-                }
-            }
-            
-            showSuccessMessage('Job Card saved successfully!');
-            resetJobCardState();
-        }
-        
-        async function handleReportUpdateSearch() {
-            const input = document.getElementById('update-search-input').value.trim().toUpperCase();
-            predictionList.innerHTML = '';
-            if (!input) {
-                predictionList.classList.add('hidden');
-                return;
-            }
-
-            const { data: vehiclesData } = await sb.from('vehicles').select('id').ilike('vehicle_no', `%${input}%`);
-            if (!vehiclesData || vehiclesData.length === 0) {
-                predictionList.classList.add('hidden');
-                return;
-            }
-
-            const vehicleIds = vehiclesData.map(v => v.id);
-
-            const { data } = await sb.from('reports').select(`id, complaint, approved, suggested, customer_feedback_text, customer_feedback_audio, vehicles!inner(vehicle_no)`).in('vehicle_id', vehicleIds).neq('status', 'Completed').limit(5);
-            if (!data || data.length === 0) {
-                predictionList.classList.add('hidden');
-                return;
-            }
-            
-            data.forEach(report => {
-                const item = document.createElement('div');
-                item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
-                item.textContent = `${report.vehicles.vehicle_no} - ${formatArrayCell(report.complaint)}`;
-                item.onclick = () => selectReportForUpdate(report);
-                predictionList.appendChild(item);
+            const uploadPromises = [];
+            capturedPhotos.forEach((photo, index) => {
+                uploadPromises.push(uploadFileToDrive(folderId, photo, `photo_${index + 1}.jpg`));
             });
-            predictionList.classList.remove('hidden');
-        }
-
-        function selectReportForUpdate(report) {
-            currentReportId = report.id;
-            document.getElementById('update-search-input').value = report.vehicles.vehicle_no;
-            predictionList.classList.add('hidden');
-            document.getElementById('update-detail-number').textContent = report.vehicles.vehicle_no;
-            updateDetailsSection.classList.remove('hidden');
-            updateFormSection.classList.remove('hidden');
-
-            try {
-                originalComplaintsForUpdate = JSON.parse(report.complaint || '[]');
-            } catch (e) {
-                console.error("Could not parse complaints:", e);
-                originalComplaintsForUpdate = [];
+            if (voiceNoteBlob) {
+                uploadPromises.push(uploadFileToDrive(folderId, voiceNoteBlob, 'voice_note.webm'));
             }
-             try {
-                newSuggestions = report.suggested ? JSON.parse(report.suggested) : [];
-            } catch(e) {
-                console.error("Could not parse suggestions:", e);
-                newSuggestions = [];
-            }
-            requiredMaterials = [];
+
+            await Promise.all(uploadPromises);
             
-            const complaintDisplayList = document.getElementById('original-complaints-list');
-            const complaintSummaryP = document.getElementById('update-detail-complaint');
-            const complaintDisplayDiv = document.getElementById('original-complaints-display');
-            complaintDisplayList.innerHTML = '';
+            const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+            const { error: updateError } = await sb.from('reports').update({ gdrive_folder_url: folderUrl }).eq('id', reportId);
+            if (updateError) throw updateError;
             
-            if (originalComplaintsForUpdate.length > 0) {
-                complaintSummaryP.textContent = `${originalComplaintsForUpdate.length} issue(s) registered.`;
-                originalComplaintsForUpdate.forEach(complaint => {
-                    const li = document.createElement('li');
-                    li.textContent = complaint;
-                    complaintDisplayList.appendChild(li);
-                });
-                complaintDisplayDiv.classList.remove('hidden');
-            } else {
-                 complaintSummaryP.textContent = 'No complaints registered.';
-                 complaintDisplayDiv.classList.add('hidden');
-            }
-
-            // Display customer feedback if available
-            const feedbackDisplay = document.getElementById('customer-feedback-display');
-            const feedbackTextDisplay = document.getElementById('customer-feedback-text-display');
-            const feedbackAudioDisplay = document.getElementById('customer-feedback-audio-display');
-
-            // Reset visibility and content first
-            feedbackDisplay.classList.add('hidden');
-            feedbackTextDisplay.classList.add('hidden');
-            feedbackAudioDisplay.classList.add('hidden');
-            feedbackTextDisplay.textContent = '';
-            feedbackAudioDisplay.innerHTML = '';
-
-            if (report.customer_feedback_text || report.customer_feedback_audio) {
-                feedbackDisplay.classList.remove('hidden');
-
-                if (report.customer_feedback_text) {
-                    feedbackTextDisplay.textContent = report.customer_feedback_text;
-                    feedbackTextDisplay.classList.remove('hidden');
-                }
-
-                if (report.customer_feedback_audio) {
-                    feedbackAudioDisplay.innerHTML = `<audio controls src="${report.customer_feedback_audio}" class="w-full"></audio>`;
-                    feedbackAudioDisplay.classList.remove('hidden');
-                }
-            }
-
-            const approvedItems = report.approved ? JSON.parse(report.approved) : [];
-            renderSuggestions(approvedItems);
-            renderMaterials();
-
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('delivery-date').setAttribute('min', today);
+            showSuccessMessage('Media uploaded successfully!');
+        } catch (driveError) {
+            console.error('Google Drive or DB Update Error:', driveError);
+            showError('Report saved, but media upload failed. Check Google Drive authorization.');
         }
+    }
+
+    const updates = {};
+    const newOdometer = parseInt(serviceOdometer);
+
+    if (newOdometer > currentOdometer) updates.odometer = newOdometer;
+    if (serviceClientName !== originalClientName) updates.client_name = serviceClientName;
+    if (serviceClientPhone !== originalClientPhone) updates.client_phone = serviceClientPhone;
+
+    if (Object.keys(updates).length > 0) {
+        const { error: vehicleUpdateError } = await sb.from('vehicles').update(updates).eq('id', currentVehicleId);
+         if(vehicleUpdateError) {
+            console.error("Error updating vehicle details:", vehicleUpdateError);
+            showError('Report saved, but failed to update vehicle details.');
+        }
+    }
+    
+    showSuccessMessage('Job Card saved successfully!');
+    resetJobCardState();
+}
+
+
+      // REPLACE this function
+function selectReportForUpdate(report) {
+    document.getElementById('update-tab-container').classList.add('hidden');
+    
+    currentReportId = report.id;
+    
+    document.getElementById('update-detail-number').textContent = report.vehicles.vehicle_no;
+    updateDetailsSection.classList.remove('hidden');
+    updateFormSection.classList.remove('hidden');
+
+    const complaints = ensureObjectFormat(JSON.parse(report.complaint || '[]'));
+    const suggestions = ensureObjectFormat(report.suggested ? JSON.parse(report.suggested) : []);
+    
+    // Store original complaint texts for UI tagging
+    originalComplaintTexts = complaints.map(c => c.text);
+
+    // Combine complaints and suggestions into a single, unique list for editing
+    const combined = [...complaints, ...suggestions];
+    allServiceItems = combined.reduce((acc, current) => {
+        if (!acc.find(item => item.text === current.text)) {
+            acc.push(current);
+        }
+        return acc;
+    }, []);
+
+    const approvedItems = ensureObjectFormat(report.approved ? JSON.parse(report.approved) : []);
+    
+    renderSuggestions(approvedItems);
+    
+    renderMaterials();
+
+    const complaintDisplayList = document.getElementById('original-complaints-list');
+    const complaintSummaryP = document.getElementById('update-detail-complaint');
+    const complaintDisplayDiv = document.getElementById('original-complaints-display');
+    complaintDisplayList.innerHTML = '';
+
+    if (originalComplaintTexts.length > 0) {
+        complaintSummaryP.textContent = `${originalComplaintTexts.length} issue(s) registered.`;
+        originalComplaintTexts.forEach(complaintText => {
+            const li = document.createElement('li');
+            li.textContent = complaintText;
+            complaintDisplayList.appendChild(li);
+        });
+        complaintDisplayDiv.classList.remove('hidden');
+    } else {
+        complaintSummaryP.textContent = 'No complaints registered.';
+        complaintDisplayDiv.classList.add('hidden');
+    }
+
+    const feedbackDisplay = document.getElementById('customer-feedback-display');
+    const feedbackTextDisplay = document.getElementById('customer-feedback-text-display');
+    const feedbackAudioDisplay = document.getElementById('customer-feedback-audio-display');
+
+    feedbackDisplay.classList.add('hidden');
+    feedbackTextDisplay.classList.add('hidden');
+    feedbackAudioDisplay.classList.add('hidden');
+    feedbackTextDisplay.textContent = '';
+    feedbackAudioDisplay.innerHTML = '';
+
+    if (report.customer_feedback_text || report.customer_feedback_audio) {
+        feedbackDisplay.classList.remove('hidden');
+        if (report.customer_feedback_text) {
+            feedbackTextDisplay.textContent = report.customer_feedback_text;
+            feedbackTextDisplay.classList.remove('hidden');
+        }
+        if (report.customer_feedback_audio) {
+            feedbackAudioDisplay.innerHTML = `<audio controls src="${report.customer_feedback_audio}" class="w-full"></audio>`;
+            feedbackAudioDisplay.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('delivery-date').value = report.expected_delivery || '';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('delivery-date').setAttribute('min', today);
+
+    const whatsappButton = document.getElementById('send-whatsapp-btn');
+    if (report.approved !== null && report.approved !== '[]') {
+        whatsappButton.style.display = 'none';
+    } else {
+        whatsappButton.style.display = 'flex';
+    }
+}
+
+// REPLACE this function
+function addSuggestion() {
+    const input = document.getElementById('suggestion-input');
+    const suggestionText = input.value.trim();
+    if (suggestionText) {
+        // Add to the single master list if it doesn't exist
+        if (!allServiceItems.some(s => s.text === suggestionText)) {
+            allServiceItems.push({ text: suggestionText, cost: 0 });
+        }
+        input.value = '';
         
-        function addSuggestion() {
-            const input = document.getElementById('suggestion-input');
-            const suggestionText = input.value.trim();
-            if (suggestionText) {
-                if (!newSuggestions.includes(suggestionText)) {
-                    newSuggestions.push(suggestionText);
-                }
-                input.value = '';
-                renderSuggestions();
-            }
-        }
-        function deleteSuggestion(index) {
-            newSuggestions.splice(index, 1);
-            renderSuggestions();
-        }
+        const approvedItems = [];
+        document.querySelectorAll('#customer-approval-list input[type="checkbox"]:checked').forEach(checkbox => {
+            approvedItems.push(JSON.parse(checkbox.value));
+        });
+        renderSuggestions(approvedItems);
+    }
+}
 
-        function renderSuggestions(approvedItems = []) {
-            const executiveList = document.getElementById('executive-suggestions-list');
-            const customerList = document.getElementById('customer-approval-list');
-            executiveList.innerHTML = '';
-            customerList.innerHTML = '';
+// REPLACE this function
+function deleteSuggestion(index) {
+    allServiceItems.splice(index, 1);
+    const approvedItems = [];
+    document.querySelectorAll('#customer-approval-list input[type="checkbox"]:checked').forEach(checkbox => {
+        approvedItems.push(JSON.parse(checkbox.value));
+    });
+    renderSuggestions(approvedItems);
+}
 
-            if (newSuggestions.length > 0) {
-                newSuggestions.forEach((text, index) => {
-                    const isApproved = approvedItems.includes(text);
-                    
-                    const execItem = document.createElement('div');
-                    execItem.className = 'flex items-center justify-between bg-gray-50 p-2 rounded-lg text-sm';
-                    execItem.innerHTML = `
-                        <p class="flex-1 mr-2">${text}</p>
-                        <button type="button" onclick="deleteSuggestion(${index})" class="text-red-500 hover:text-red-700 shrink-0">
-                            <span class="material-symbols-outlined">delete</span>
-                        </button>
-                    `;
-                    executiveList.appendChild(execItem);
 
-                    const customerItem = document.createElement('label');
-                    customerItem.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100';
-                    customerItem.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${isApproved ? 'checked' : ''}><span class="flex-1">${text}</span>`;
-                    customerList.appendChild(customerItem);
-                });
-            }
+// REPLACE this function
+function updateSuggestionCost(index, cost) {
+    if (allServiceItems[index]) {
+        allServiceItems[index].cost = Number(cost) || 0;
+        const approvedItems = [];
+        document.querySelectorAll('#customer-approval-list input[type="checkbox"]:checked').forEach(checkbox => {
+            approvedItems.push(JSON.parse(checkbox.value));
+        });
+        renderSuggestions(approvedItems);
+    }
+}
 
-            if (customerList.innerHTML === '') {
-                customerList.innerHTML = '<p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p>';
-            }
-        }
+// REPLACE this function
+function renderSuggestions(approved = []) {
+    const executiveList = document.getElementById('executive-suggestions-list');
+    const customerList = document.getElementById('customer-approval-list');
+    
+    // --- 1. Render the single, unified editable list for the executive ---
+    executiveList.innerHTML = '';
+    if (allServiceItems.length > 0) {
+        allServiceItems.forEach((item, index) => {
+            const isOriginal = originalComplaintTexts.includes(item.text);
+            const tag = isOriginal
+                ? `<span class="text-xs font-semibold text-gray-500">(Customer Request)</span>`
+                : `<span class="text-xs font-semibold text-blue-600">(Mechanic Suggestion)</span>`;
+
+            const execItem = document.createElement('div');
+            execItem.className = 'flex items-center justify-between gap-2 bg-gray-50 p-2 rounded-lg text-sm';
+            execItem.innerHTML = `
+                <div class="flex-1 mr-2">
+                    <p>${item.text}</p>
+                    ${tag}
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="font-bold text-gray-500">₹</span>
+                    <input type="number" value="${item.cost || 0}" oninput="updateSuggestionCost(${index}, this.value)" class="form-input !py-1 !px-2 w-24 text-right" placeholder="Cost">
+                </div>
+                <button type="button" onclick="deleteSuggestion(${index})" class="text-red-500 hover:text-red-700 shrink-0">
+                    <span class="material-symbols-outlined">delete</span>
+                </button>
+            `;
+            executiveList.appendChild(execItem);
+        });
+    }
+
+    // --- 2. Render the checkbox list for approval preview ---
+    customerList.innerHTML = '';
+    if (allServiceItems.length > 0) {
+        allServiceItems.forEach(item => {
+            const isApproved = approved.some(a => a.text === item.text);
+            const isOriginal = originalComplaintTexts.includes(item.text);
+
+            const bgColor = isOriginal ? 'bg-gray-100' : 'bg-blue-50';
+            const tag = isOriginal
+                ? `<span class="text-xs text-gray-500">(Customer Request)</span>`
+                : `<span class="text-xs text-blue-600">(Mechanic Suggestion)</span>`;
+
+            const customerItem = document.createElement('label');
+            customerItem.className = `flex items-center gap-3 p-3 ${bgColor} rounded-lg cursor-pointer hover:bg-gray-200 transition-colors`;
+            
+            const itemJSON = JSON.stringify(item);
+
+            customerItem.innerHTML = `
+                <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" value='${itemJSON}' ${isApproved ? 'checked' : ''}>
+                <span class="flex-1 font-medium">${item.text}</span>
+                ${tag}
+                <span class="font-bold text-gray-700">₹${item.cost || 0}</span>
+            `;
+            customerList.appendChild(customerItem);
+        });
+    } else {
+        customerList.innerHTML = '<p class="text-sm text-gray-500">Add suggestions above to see them here for approval.</p>';
+    }
+}
+
+// REPLACE this function
+async function saveVehicleUpdate(shouldReset = true) {
+    if(!currentReportId) return showError('No report selected for update.');
+
+    const deliveryDate = document.getElementById('delivery-date').value;
+    if(!deliveryDate) return showError('Please select an expected delivery date.');
+
+    const approvedItems = [];
+    document.querySelectorAll('#customer-approval-list input[type="checkbox"]:checked').forEach(checkbox => {
+        approvedItems.push(JSON.parse(checkbox.value)); 
+    });
+
+    const updateData = {
+        // Save the entire unified list as "suggested"
+        suggested: JSON.stringify(allServiceItems), 
+        approved: JSON.stringify(approvedItems),
+        materials_required: JSON.stringify(requiredMaterials),
+        expected_delivery: deliveryDate,
+        status: 'Ongoing'
+    };
+
+    const { error } = await sb.from('reports').update(updateData).eq('id', currentReportId);
+    if(error) return showError(`Failed to save update: ${error.message}`);
+
+    showSuccessMessage('Update saved successfully!');
+    if (shouldReset) {
+        resetVehicleUpdateScreen();
+    }
+}
+
+// REPLACE this function
+async function saveSuggestionsForApproval() {
+    if (!currentReportId) {
+        showError('No report selected.');
+        return false;
+    }
+
+    const updateData = {
+        // Save the entire unified list with costs
+        suggested: JSON.stringify(allServiceItems),
+    };
+
+    const { error } = await sb.from('reports').update(updateData).eq('id', currentReportId);
+    if (error) {
+        showError(`Failed to save suggestions: ${error.message}`);
+        return false;
+    }
+    
+    console.log('Suggestions saved for approval link.');
+    return true;
+}  
+
+
+
+
+
 
         function addMaterial() {
             const input = document.getElementById('material-input');
@@ -1950,69 +2262,288 @@
             }
         }
 
-        async function saveVehicleUpdate(shouldReset = true) {
-            if(!currentReportId) return showError('No report selected for update.');
 
-            const deliveryDate = document.getElementById('delivery-date').value;
-            if(!deliveryDate) return showError('Please select an expected delivery date.');
 
-            const approvedItems = [];
-            document.querySelectorAll('#customer-approval-list input[type="checkbox"]:checked').forEach(checkbox => {
-                approvedItems.push(checkbox.nextElementSibling.textContent);
-            });
 
-            const allSuggestions = [...new Set(newSuggestions)];
 
-            const updateData = {
-                suggested: JSON.stringify(allSuggestions),
-                approved: JSON.stringify(approvedItems),
-                materials_required: JSON.stringify(requiredMaterials),
-                expected_delivery: deliveryDate,
-                status: 'Ongoing'
-            };
 
-            const { error } = await sb.from('reports').update(updateData).eq('id', currentReportId);
-            if(error) return showError(`Failed to save update: ${error.message}`);
 
-            showSuccessMessage('Update saved successfully!');
-            if (shouldReset) {
-                resetVehicleUpdateScreen();
-            }
-        }
+
+
+
+
+
         
-        async function sendApprovalLink() {
-            if (!currentReportId) { showError('No report is currently selected.'); return; }
-            await saveVehicleUpdate(false); // Save current state before sending
-            const { data: reportData, error: reportError } = await sb
-                .from('reports')
-                .select('client_phone, vehicle_id')
-                .eq('id', currentReportId)
-                .single();
+async function sendApprovalLink() {
+    if (!currentReportId) { 
+        showError('No report is currently selected.'); 
+        return; 
+    }
+    
+    // Step 1: Save the current suggestions to the database.
+    const savedSuccessfully = await saveSuggestionsForApproval();
+    if (!savedSuccessfully) {
+        showError('Could not save suggestions before sending. Please try again.');
+        return;
+    }
 
-            if (reportError) { console.error("Error fetching report details:", reportError); showError("Could not fetch report details to send the link."); return; }
-            
-            let clientPhone = reportData.client_phone;
-            if (!clientPhone && reportData.vehicle_id) {
-                const { data: vehicleData, error: vehicleError } = await sb
-                    .from('vehicles')
-                    .select('client_phone')
-                    .eq('id', reportData.vehicle_id)
-                    .single();
-                if (vehicleError) { console.error("Error fetching vehicle's phone number:", vehicleError); showError("Could not fetch the vehicle's primary phone number."); return; }
-                clientPhone = vehicleData?.client_phone;
-            }
+    // Step 2: NEW - Automatically update the status to 'Ongoing'
+    const { error: statusUpdateError } = await sb.from('reports')
+        .update({ status: 'Ongoing' })
+        .eq('id', currentReportId);
 
-            if (!clientPhone) { showError("A client phone number could not be found for this report or vehicle."); return; }
-            
-            const approvalUrl = `https://customer-suggestions.vercel.app/?report_id=${currentReportId}`;
-            const messageText = `Dear Customer,\n\nPlease review and approve the suggested repairs for your vehicle using the link below:\n${approvalUrl}\n\nThank you,\nAutoFix Service`;
-            
-            const encodedText = encodeURIComponent(messageText);
-            const whatsappUrl = `https://wa.me/91${clientPhone}?text=${encodedText}`;
-            
-            window.open(whatsappUrl, '_blank');
-        }
+    if (statusUpdateError) {
+        showError('Could not update job status before sending. Please try again.');
+        console.error('Status Update Error:', statusUpdateError);
+        return;
+    }
 
+    // Step 3: Fetch the client's phone number from the report or the vehicle record.
+    const { data: reportData, error: reportError } = await sb
+        .from('reports')
+        .select('client_phone, vehicles(client_phone)') // Efficiently gets phone from report or vehicle
+        .eq('id', currentReportId)
+        .single();
+
+    if (reportError) { 
+        console.error("Error fetching report details:", reportError); 
+        showError("Could not fetch report details to send the link."); 
+        return; 
+    }
+    
+    // Prioritize the phone number saved with the report, but fall back to the vehicle's main number.
+    const clientPhone = reportData.client_phone || reportData.vehicles?.client_phone;
+
+    if (!clientPhone) { 
+        showError("A client phone number could not be found for this report or vehicle."); 
+        return; 
+    }
+    
+    // Step 4: Construct the WhatsApp message and URL, then open it.
+    const approvalUrl = `${window.location.origin}${window.location.pathname}?report_id=${currentReportId}`;
+    const messageText = `Dear Customer,\n\nPlease review and approve the suggested repairs for your vehicle using the link below:\n${approvalUrl}\n\nThank you,\nAutoFix Service`;
+    
+    const encodedText = encodeURIComponent(messageText);
+    const whatsappUrl = `https://wa.me/91${clientPhone}?text=${encodedText}`;
+    
+    window.open(whatsappUrl, '_blank');
+
+    // After sending, refresh the view
+    showSuccessMessage("Approval link sent and job moved to 'Awaiting Response'.");
+    resetVehicleUpdateScreen();
+}
+
+
+async function populateNotStartedJobs() {
+    if (!currentUser) {
+        console.error("populateNotStartedJobs: currentUser is null. Cannot fetch data.");
+        document.getElementById('no-pending-jobs-message').classList.remove('hidden');
+        return; 
+    }
+
+    const listContainer = document.getElementById('not-started-jobs-list');
+    const noJobsMsg = document.getElementById('no-pending-jobs-message');
+    listContainer.innerHTML = '';
+    noJobsMsg.classList.add('hidden');
+
+    const { data: reports, error } = await sb.from('reports')
+        .select(`id, created_at, complaint, approved, suggested, customer_feedback_text, customer_feedback_audio, vehicles!inner(vehicle_no, vehicle_name, color, vehicle_models(brand, model))`)
+        .eq('executive_id', currentUser.id)
+        .eq('status', 'Not Started')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching not started jobs:", error);
+        showError('Could not fetch pending job cards.');
+        return;
+    }
+
+    if (!reports || reports.length === 0) {
+        noJobsMsg.classList.remove('hidden');
+        return;
+    }
+
+    updateableReportsStore = {}; // Clear before populating
+    reports.forEach(report => {
+        updateableReportsStore[report.id] = report; // Store it
+        const card = document.createElement('div');
+		const vehicle = report.vehicles;
+
+		const brand = vehicle.vehicle_models ? vehicle.vehicle_models.brand : '';
+		const model = vehicle.vehicle_models ? vehicle.vehicle_models.model : '';
+		const vehicleName = vehicle.vehicle_name || '';
+		const color = vehicle.color || '';
+        
+        const createdDate = new Date(report.created_at).toLocaleDateString('en-GB', {
+            day: 'numeric', month: 'short', year: 'numeric'
+        });
+
+		const brandAndModel = `${brand} ${model}`.trim();
+		const descriptionParts = [vehicleName, brandAndModel, color].filter(part => part);
+		const description = descriptionParts.join(' &bull; '); 
+
+		card.className = 'p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-blue-500 transition-all flex justify-between items-center';
+
+		card.innerHTML = `
+			<div class="flex-grow cursor-pointer" onclick="selectReportForUpdateById(${report.id})">
+				<div class="flex items-center gap-4">
+                    <p class="font-bold text-gray-800">${vehicle.vehicle_no}</p>
+                    <p class="text-xs font-medium text-gray-500">${createdDate}</p>
+                </div>
+				<p class="text-sm text-gray-600 mt-1">${description}</p>
+				<p class="text-xs text-gray-500 mt-1 truncate" title="${formatArrayCell(report.complaint)}"><strong>Complaint:</strong> ${formatArrayCell(report.complaint)}</p>
+			</div>
+            <div class="menu-container">
+                <button class="menu-button p-2 rounded-full hover:bg-gray-100">
+                    <span class="material-symbols-outlined text-gray-500">more_vert</span>
+                </button>
+                <div class="dropdown-menu">
+                    <a onclick="openCancelModal(${report.id}, '${vehicle.vehicle_no}')" class="dropdown-item">
+                        <span class="material-symbols-outlined text-red-500">cancel</span>
+                        <span>Cancel Job</span>
+                    </a>
+                </div>
+            </div>
+		`;
+
+        listContainer.appendChild(card);
+    });
+}
+
+function showUpdateTab(tabName) {
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active-tab'));
+    
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+
+    if (tabName === 'pending') {
+        document.getElementById('tab-btn-pending').classList.add('active-tab');
+        document.getElementById('pending-jobs-panel').classList.remove('hidden');
+        populateNotStartedJobs();
+    } else if (tabName === 'awaiting') {
+        document.getElementById('tab-btn-awaiting').classList.add('active-tab');
+        document.getElementById('awaiting-response-panel').classList.remove('hidden');
+        populateAwaitingResponseJobs();
+    } else if (tabName === 'responses') {
+        document.getElementById('tab-btn-responses').classList.add('active-tab');
+        document.getElementById('responses-received-panel').classList.remove('hidden');
+        populateCustomerResponseJobs();
+    }
+}
+async function populateCustomerResponseJobs() {
+    const listContainer = document.getElementById('customer-response-list');
+    const noJobsMsg = document.getElementById('no-customer-response-message');
+    listContainer.innerHTML = '';
+    noJobsMsg.classList.add('hidden');
+
+    const { data: reports, error } = await sb.from('reports')
+        .select(`id, complaint, approved, suggested, customer_feedback_text, customer_feedback_audio, vehicles!inner(vehicle_no, vehicle_name, color, vehicle_models(brand, model))`)
+        .eq('executive_id', currentUser.id)
+        .eq('status', 'Ongoing')
+        .not('approved', 'is', null)
+	    .neq('approved', '[]')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching customer response jobs:", error);
+        return showError('Could not fetch jobs with customer responses.');
+    }
+
+    if (!reports || reports.length === 0) {
+        noJobsMsg.classList.remove('hidden');
+        return;
+    }
+
+    reports.forEach(report => {
+        updateableReportsStore[report.id] = report; // Store it
+        const card = document.createElement('div');
+        const approvedCount = (JSON.parse(report.approved || '[]')).length;
+
+        card.className = 'p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-green-500 transition-all flex justify-between items-center';
+        const vehicle = report.vehicles;
+        const brand = vehicle.vehicle_models ? vehicle.vehicle_models.brand : '';
+        const model = vehicle.vehicle_models ? vehicle.vehicle_models.model : '';
+
+        card.innerHTML = `
+            <div class="flex-grow cursor-pointer" onclick="selectReportForUpdateById(${report.id})">
+                <div class="flex justify-between items-center">
+                    <p class="font-bold text-gray-800">${vehicle.vehicle_no}</p>
+                    <p class="text-xs text-gray-500 italic">${brand} ${model}</p>
+                </div>
+                <p class="text-sm text-green-700 font-semibold mt-1">${approvedCount} service(s) approved</p>
+            </div>
+            <div class="menu-container">
+                <button class="menu-button p-2 rounded-full hover:bg-gray-100">
+                    <span class="material-symbols-outlined text-gray-500">more_vert</span>
+                </button>
+                <div class="dropdown-menu">
+                    <a onclick="openCancelModal(${report.id}, '${vehicle.vehicle_no}')" class="dropdown-item">
+                        <span class="material-symbols-outlined text-red-500">cancel</span>
+                        <span>Cancel Job</span>
+                    </a>
+                </div>
+            </div>
+        `;
+        listContainer.appendChild(card);
+    });
+}
+
+async function populateAwaitingResponseJobs() {
+    const listContainer = document.getElementById('awaiting-response-list');
+    const noJobsMsg = document.getElementById('no-awaiting-response-message');
+    listContainer.innerHTML = '';
+    noJobsMsg.classList.add('hidden');
+
+    const { data: reports, error } = await sb.from('reports')
+        .select(`id, complaint, approved, suggested, customer_feedback_text, customer_feedback_audio, vehicles!inner(vehicle_no, vehicle_name, color, vehicle_models(brand, model))`)
+        .eq('executive_id', currentUser.id)
+        .eq('status', 'Ongoing')
+        .not('suggested', 'is', null)
+        .or('approved.is.null,approved.eq.[]') 
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching awaiting response jobs:", error);
+        return showError('Could not fetch jobs awaiting customer response.');
+    }
+
+    if (!reports || reports.length === 0) {
+        noJobsMsg.classList.remove('hidden');
+        return;
+    }
+
+    reports.forEach(report => {
+        updateableReportsStore[report.id] = report; // Store it
+        const card = document.createElement('div');
+        const vehicle = report.vehicles;
+        const brand = vehicle.vehicle_models ? vehicle.vehicle_models.brand : '';
+        const model = vehicle.vehicle_models ? vehicle.vehicle_models.model : '';
+
+        card.className = 'p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-blue-500 transition-all flex justify-between items-center';
+        card.innerHTML = `
+            <div class="flex-grow cursor-pointer" onclick="selectReportForUpdateById(${report.id})">
+                <div class="flex justify-between items-center w-full">
+                     <p class="font-bold text-gray-800">${vehicle.vehicle_no}</p>
+                     <p class="text-xs text-gray-500 italic ml-4">${brand} ${model}</p>
+                </div>
+                <p class="text-sm text-blue-700 font-semibold mt-1">Approval sent to customer</p>
+            </div>
+             <div class="menu-container">
+                <button class="menu-button p-2 rounded-full hover:bg-gray-100">
+                    <span class="material-symbols-outlined text-gray-500">more_vert</span>
+                </button>
+                <div class="dropdown-menu">
+                    <a onclick="openCancelModal(${report.id}, '${vehicle.vehicle_no}')" class="dropdown-item">
+                        <span class="material-symbols-outlined text-red-500">cancel</span>
+                        <span>Cancel Job</span>
+                    </a>
+                </div>
+            </div>
+        `;
+        listContainer.appendChild(card);
+    });
+}		
+
+		
         // --- EXECUTIVE: DUE DATES ---
         async function populateDueDateScreen() {
             const listContainer = document.getElementById('due-date-list');
@@ -2133,13 +2664,78 @@
         }
         
         async function updateJobStatus(id, newStatus, vehicleNo) {
-            const { error } = await sb.from('reports').update({ status: newStatus }).eq('id', id);
+            if (newStatus === 'Completed') {
+                document.getElementById('complete-modal-text').textContent = `Are you sure you want to mark the job for vehicle ${vehicleNo} as completed?`;
+                document.getElementById('confirm-complete-button').onclick = () => handleCompletionConfirmation(id, vehicleNo);
+                showModal('complete-confirmation-modal');
+            } else {
+                const { error } = await sb.from('reports').update({ status: newStatus }).eq('id', id);
+                if(error) return showError('Failed to update status.');
+
+                showSuccessMessage(`Status for ${vehicleNo} updated to ${newStatus}`);
+                setTimeout(populateDueDateScreen, 500);
+            }
+        }
+
+        async function handleCompletionConfirmation(id, vehicleNo) {
+            const confirmationInput = document.getElementById('complete-confirmation-input');
+            if (confirmationInput.value.trim().toLowerCase() !== 'yes') {
+                return showError("Confirmation text did not match. Please type 'yes' to proceed.");
+            }
+
+            const { error } = await sb.from('reports').update({ status: 'Completed' }).eq('id', id);
+            
+            confirmationInput.value = ''; // Clear input
+            hideModal('complete-confirmation-modal');
+
             if(error) return showError('Failed to update status.');
 
-            showSuccessMessage(`Status for ${vehicleNo} updated to ${newStatus}`);
-            setTimeout(populateDueDateScreen, 500); 
+            showSuccessMessage(`Status for ${vehicleNo} updated to Completed`);
+            setTimeout(populateDueDateScreen, 500);
+        }
+
+        function cancelCompletion() {
+            document.getElementById('complete-confirmation-input').value = '';
+            hideModal('complete-confirmation-modal');
+            populateDueDateScreen(); // To reset the dropdown to its original value
         }
         
+        function openCancelModal(reportId, vehicleNo) {
+            document.getElementById('cancel-modal-text').textContent = `Are you sure you want to cancel the job for vehicle ${vehicleNo}? This action cannot be undone.`;
+            document.getElementById('confirm-cancel-button').onclick = () => executeCancellation(reportId, vehicleNo);
+            showModal('cancel-confirmation-modal');
+        }
+
+        async function executeCancellation(reportId, vehicleNo) {
+            const confirmationInput = document.getElementById('cancel-confirmation-input');
+            if (confirmationInput.value.trim().toLowerCase() !== 'cancel') {
+                return showError("Confirmation text did not match. Please type 'cancel' to proceed.");
+            }
+
+            const { error } = await sb.from('reports').update({ status: 'Cancelled' }).eq('id', reportId);
+
+            confirmationInput.value = '';
+            hideModal('cancel-confirmation-modal');
+
+            if (error) {
+                return showError(`Failed to cancel job: ${error.message}`);
+            }
+
+            showSuccessMessage(`Job for ${vehicleNo} has been cancelled.`);
+            // Refresh the current tab view
+            const activeTab = document.querySelector('.tab-button.active-tab');
+            if (activeTab) {
+                if (activeTab.id === 'tab-btn-pending') populateNotStartedJobs();
+                else if (activeTab.id === 'tab-btn-awaiting') populateAwaitingResponseJobs();
+                else if (activeTab.id === 'tab-btn-responses') populateCustomerResponseJobs();
+            }
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancel-confirmation-input').value = '';
+            hideModal('cancel-confirmation-modal');
+        }
+
         async function resetPassword() {
             const currentPassword = document.getElementById('current-password').value;
             const newPassword = document.getElementById('new-password').value;
@@ -2223,18 +2819,39 @@
             document.getElementById('recording-status').textContent = '';
         }
 
-        function resetVehicleUpdateScreen() {
-            document.getElementById('update-search-input').value = '';
-            predictionList.classList.add('hidden');
-            updateDetailsSection.classList.add('hidden');
-            updateFormSection.classList.add('hidden');
-            document.getElementById('delivery-date').value = '';
-            newSuggestions = [];
-            requiredMaterials = [];
-            currentReportId = null;
-            renderSuggestions();
-            renderMaterials();
-        }
+
+
+function selectReportForUpdateById(reportId) {
+    const report = updateableReportsStore[reportId];
+    if (report) {
+        selectReportForUpdate(report);
+    } else {
+        console.error(`Report with ID ${reportId} not found in store.`);
+        showError("Could not load report details. Please try again.");
+    }
+}
+function resetVehicleUpdateScreen() {
+    // Hide update form sections
+    document.getElementById('update-details-section').classList.add('hidden');
+    document.getElementById('update-form-section').classList.add('hidden');
+
+    // Show the tab interface and search bar
+    document.getElementById('update-tab-container').classList.remove('hidden');
+    
+
+    // Clear old data
+    
+    
+    document.getElementById('delivery-date').value = '';
+    newSuggestions = [];
+    requiredMaterials = [];
+    currentReportId = null;
+    renderSuggestions();
+    renderMaterials();
+    
+    // Set the default view to the 'pending' tab
+    showUpdateTab('pending');
+}
 
         // --- Damage Marking Functions ---
         function resizeCanvas() {
@@ -2324,19 +2941,24 @@
             showScreen('admin-screens');
         }
 
-        function showExecutiveScreen(screenId) {
-            document.querySelectorAll('#executive-screens .executive-screen').forEach(s => s.style.display = 'none');
-            document.getElementById(screenId).style.display = 'block';
-            setActiveNav(screenId);
-            
-            if (screenId === 'report-screen') fetchAndPopulateReports(false);
-            if (screenId === 'due-date-screen') populateDueDateScreen();
-            if (screenId === 'job-card-screen') {
-                resetJobCardState();
-            }
-            
-            showScreen('executive-screens');
-        }
+
+function showExecutiveScreen(screenId) {
+    document.querySelectorAll('#executive-screens .executive-screen').forEach(s => s.style.display = 'none');
+    document.getElementById(screenId).style.display = 'block';
+    setActiveNav(screenId);
+
+    if (screenId === 'report-screen') fetchAndPopulateReports(false);
+    if (screenId === 'due-date-screen') populateDueDateScreen();
+    if (screenId === 'job-card-screen') {
+        resetJobCardState();
+    }
+    if (screenId === 'vehicle-update-screen') {
+        resetVehicleUpdateScreen(); // First, clear any previous update state
+        populateNotStartedJobs();   // Then, populate the list of pending jobs
+    }
+
+    showScreen('executive-screens');
+}
 
         function setActiveNav(targetId) {
             const headerTitle = document.getElementById('executive-header-title');
@@ -2447,48 +3069,70 @@
         }
 
         // --- Customer Approval Flow ---
-        async function loadApprovalScreen(reportId) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('admin-screens').style.display = 'none';
-            document.getElementById('executive-screens').style.display = 'none';
-            document.getElementById('customer-approval-screen').classList.add('active-screen');
+async function loadApprovalScreen(reportId) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screens').style.display = 'none';
+    document.getElementById('executive-screens').style.display = 'none';
+    document.getElementById('customer-approval-screen').classList.add('active-screen');
 
-            const { data: report, error } = await sb.from('reports')
-                .select(`suggested, vehicles ( vehicle_no )`)
-                .eq('id', reportId)
-                .single();
+    const { data: report, error } = await sb.from('reports')
+        .select(`complaint, suggested, approved, vehicles ( vehicle_no )`)
+        .eq('id', reportId)
+        .single();
 
-            if (error || !report) {
-                console.error('Error fetching report for approval:', error);
-                showError('Could not load the approval details. The link may be invalid.');
-                document.getElementById('approval-content').innerHTML = '<p class="text-center text-red-600">Could not load report details.</p>';
-                return;
+    if (error || !report) {
+        console.error('Error fetching report for approval:', error);
+        showError('Could not load the approval details. The link may be invalid.');
+        document.getElementById('approval-content').innerHTML = '<p class="text-center text-red-600">Could not load report details.</p>';
+        return;
+    }
+
+    document.getElementById('approval-vehicle-no').textContent = report.vehicles.vehicle_no;
+
+    if (report.approved !== null) {
+        document.getElementById('approval-content').classList.add('hidden');
+        const successMsg = document.getElementById('approval-success-message');
+        
+        successMsg.querySelector('h3').textContent = 'Response Already Submitted';
+        successMsg.querySelector('p').textContent = 'Thank you, we have already received your feedback for this service request.';
+        
+        successMsg.classList.remove('hidden');
+        document.querySelector('#customer-approval-card h2').textContent = 'Response Received';
+    } else {
+        const suggestionsList = document.getElementById('approval-suggestions-list');
+        suggestionsList.innerHTML = '';
+        try {
+            const complaints = JSON.parse(report.complaint || '[]');
+            const suggestions = JSON.parse(report.suggested || '[]');
+            const allItems = [...new Set([...complaints, ...suggestions])];
+
+            if (allItems.length > 0) {
+                allItems.forEach(text => {
+                    const isComplaint = complaints.includes(text);
+                    const tag = isComplaint 
+                        ? `<span class="text-xs text-gray-500">(Customer Request)</span>`
+                        : `<span class="text-xs text-blue-600">(Mechanic Suggestion)</span>`;
+                    
+                    const item = document.createElement('label');
+                    item.className = 'flex items-center gap-3 p-3 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors';
+                    item.innerHTML = `
+                        <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="${text}">
+                        <div class="flex-1 flex justify-between items-center">
+                            <span class="text-sm font-medium">${text}</span>
+                            ${tag}
+                        </div>
+                    `;
+                    suggestionsList.appendChild(item);
+                });
+            } else {
+                suggestionsList.innerHTML = '<p class="text-sm text-gray-500">No complaints or repairs were suggested.</p>';
             }
-
-            document.getElementById('approval-vehicle-no').textContent = report.vehicles.vehicle_no;
-            const suggestionsList = document.getElementById('approval-suggestions-list');
-            suggestionsList.innerHTML = '';
-
-            try {
-                const suggestions = JSON.parse(report.suggested || '[]');
-                if (suggestions.length > 0) {
-                    suggestions.forEach(text => {
-                        const item = document.createElement('label');
-                        item.className = 'flex items-center gap-3 p-3 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors';
-                        item.innerHTML = `
-                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="${text}">
-                            <span class="flex-1 text-sm font-medium">${text}</span>
-                        `;
-                        suggestionsList.appendChild(item);
-                    });
-                } else {
-                    suggestionsList.innerHTML = '<p class="text-sm text-gray-500">No specific repairs were suggested.</p>';
-                }
-            } catch(e) {
-                console.error("Error parsing suggestions:", e);
-                suggestionsList.innerHTML = '<p class="text-sm text-red-500">Could not display suggested repairs.</p>';
-            }
+        } catch (e) {
+            console.error("Error parsing suggestions/complaints:", e);
+            suggestionsList.innerHTML = '<p class="text-sm text-red-500">Could not display repair details.</p>';
         }
+    }
+}
 
         async function submitCustomerFeedback() {
             const params = new URLSearchParams(window.location.search);
@@ -2542,25 +3186,27 @@
             document.getElementById('approval-success-message').classList.remove('hidden');
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            const reportId = params.get('report_id');
+document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const reportId = params.get('report_id');
 
-            if (reportId) {
-                loadApprovalScreen(reportId);
-            } else {
-                const savedUser = sessionStorage.getItem('currentUser');
-                if (savedUser) {
-                    currentUser = JSON.parse(savedUser);
-                    if (currentUser.role === 'admin') {
-                        showAdminScreen('admin-dashboard-screen');
-                    } else if (currentUser.role === 'executive') {
-                        document.getElementById('profile-username').textContent = currentUser.username;
-                        document.getElementById('profile-role').textContent = currentUser.role;
-                        showExecutiveScreen('job-card-screen');
-                    }
-                }
+    if (reportId) {
+        // If a report_id exists, it's a customer link. Load ONLY this and stop.
+        loadApprovalScreen(reportId);
+    } else {
+        // Otherwise, it's the main app. Proceed to check for a logged-in user.
+        const savedUser = sessionStorage.getItem('currentUser');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            if (currentUser.role === 'admin') {
+                showAdminScreen('admin-dashboard-screen');
+            } else if (currentUser.role === 'executive') {
+                document.getElementById('profile-username').textContent = currentUser.username;
+                document.getElementById('profile-role').textContent = currentUser.role;
+                showExecutiveScreen('job-card-screen');
             }
+        }
+    }
 
             carImage = document.getElementById("carImage");
             damageCanvas = document.getElementById("damageCanvas");
@@ -2737,4 +3383,6 @@
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
+
+
 
